@@ -35,7 +35,7 @@ class AlignmentInputFile(infl.InputFile):
             fileType = "SAM"
         else:
             fileType = self.inferFileType(fileName)
-        print fileType+" file extension detected"
+        print fileType+" file detected"
         return fileType
     def inferFileType(self,fileName):
         """
@@ -56,6 +56,7 @@ class AlignmentInputFile(infl.InputFile):
         try: 
             for index in xrange(2,12):
                 value = float(tabLine[index])
+            print "Inferred BLAST file type from first line"
             return "BLAST"
         except ValueError:
             fileType = None
@@ -63,12 +64,13 @@ class AlignmentInputFile(infl.InputFile):
         try: 
             for index in [1,3,4]:
                 value = float(tabLine[index])
+            print "Inferred SAM file type from first line"
             return "SAM"
         except ValueError:
             fileType = None
 
         if fileTyle == None:
-            raise IOError(err+"\nUnable to determine filetype from line"
+            raise IOError(err+"\nUnable to determine filetype from line")
 
     def importAlignmentData(self):
         if self.fileType == "BLAST":
@@ -95,6 +97,8 @@ class AlignmentInputFile(infl.InputFile):
                 self.taxCount[taxId] += self.giCount[gi]
             else:
                 self.taxCount[taxId] = self.giCount[gi]
+    def loadIntoDbTable(self):
+        pass
 
 """
 Specialized file input for blast6 output file format. Python list returns:
