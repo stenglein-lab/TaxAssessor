@@ -35,7 +35,7 @@ class AlignmentInputFile(infl.InputFile):
             fileType = "SAM"
         else:
             fileType = self.inferFileType(fileName)
-        print fileType+" file detected"
+        print fileType+" file extension detected"
         return fileType
     def inferFileType(self,fileName):
         """
@@ -43,19 +43,33 @@ class AlignmentInputFile(infl.InputFile):
         """
         err = ("\nUnknown file extension. \nCurrent supported extensions "
                "are '.sam' and '.blast'.")
+        #read first line
         with open(self.fileName,"r") as inFile:
             line = inFile.readline()
         tabLine = line.split("\t")
-        try:
-            if "|" in tabLine[1]:
-                fileType = "BLAST"
-            elif "|" in tabLine[2]:
-                fileType = "SAM"
-            else:
-                raise IOError(err+"\nUnable to determine filetype from line.")
-        except IndexError:
+
+        #check if first line exists
+        if len(tabLine) == 0:
             raise IOError(err+"\nCould not parse first line.")
-        return fileType
+        
+        #check if blast file first
+        try: 
+            for index in xrange(2,12):
+                value = float(tabLine[index])
+            return "BLAST"
+        except ValueError:
+            fileType = None
+
+        try: 
+            for index in [1,3,4]:
+                value = float(tabLine[index])
+            return "SAM"
+        except ValueError:
+            fileType = None
+
+        if fileTyle == None:
+            raise IOError(err+"\nUnable to determine filetype from line"
+
     def importAlignmentData(self):
         if self.fileType == "BLAST":
             print "Importing BLAST file contents"
