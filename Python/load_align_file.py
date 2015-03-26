@@ -107,7 +107,7 @@ class AlignmentInputFile(infl.InputFile):
             raise IOError("cannot import SAM file into DB yet")
         elif self.fileType == "BLAST":
             alignTable.createTable({"id"          : "INT(11) NOT NULL",
-                                    "readName"    : "VARCHAR(20)"     ,
+                                    "readName"    : "VARCHAR(20) NOT NULL"     ,
                                     "gi"          : "INT(11) NOT NULL",
                                     "percentId"   : "FLOAT NOT NULL"  ,
                                     "alignLength" : "INT(11) NOT NULL",
@@ -118,20 +118,24 @@ class AlignmentInputFile(infl.InputFile):
                                     "tStartPos"   : "INT(11) NOT NULL",
                                     "tEndPos"     : "INT(11) NOT NULL",
                                     "eValue"      : "FLOAT NOT NULL"  ,
-                                    "bitScore"    : "FLOAT NOT NULL"  })
+                                    "bitScore"    : "FLOAT NOT NULL"  ,
+                                    "taxID"       : "VARCHAR(20) NOT NULL"},
+                                    index="taxID")
             fields = ["id","readName","gi","percentId","alignLength",
                       "nMismatch","nGapOpens","qStartPos","qEndPos",
-                      "tStartPos","tEndPos","eValue","bitScore"]
+                      "tStartPos","tEndPos","eValue","bitScore","taxID"]
             with open(self.fileName,"r") as inFile:
+                giTaxTable = TaxDb.MySqlTable("giTax")
                 for line in self.genLine(printProgress=True):
                     count += 1
-                    data = self.blastLineExtract(line,count)
+                    data = self.blastLineExtract(line,count,giTaxTable)
                     importData.append(data)
                     if count % 40000 == 0:
                         print count
                         alignTable.addItems(fields,importData)        
                         importData = []
-    def blastLineExtract(self,line,count):
+                giTaxTable.close()
+    def blastLineExtract(self,line,count,giTaxTable):
         data = line.split("\t")
         readName    = data[0]
         gi          = int(data[1].split("|")[1])
@@ -145,8 +149,9 @@ class AlignmentInputFile(infl.InputFile):
         tEndPos     = int(data[9])
         eValue      = float(data[10])
         bitScore    = float(data[11].rstrip("\n"))
+        taxId       = giTaxTable.readItemFromRow("gi",gi,"taxID")
         data = (count,readName,gi,percentId,alignLength,nMismatch,nGapOpens,
-                qStartPos,qEndPos,tStartPos,tEndPos,eValue,bitScore)
+                qStartPos,qEndPos,tStartPos,tEndPos,eValue,bitScore,taxId)
         return data
 
 """
