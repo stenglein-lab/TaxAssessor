@@ -95,8 +95,9 @@ class AlignmentInputFile(infl.InputFile):
         for gi in self.giCount:
             sum = 0
             for readName in self.giCount[gi]:
-                sum += (self.giCount[gi][readName]/self.readCount[readName])
-            self.giCount[gi] = sum
+                sum += (float(self.giCount[gi][readName])/
+                        float(self.readCount[readName]))
+            self.giCount[gi] = int(sum)
     def convertGiToTax(self):
         print "Converting GIs to TaxIDs"
         giTaxTable = TaxDb.MySqlTable("giTax")
