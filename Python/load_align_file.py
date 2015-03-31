@@ -27,6 +27,7 @@ class AlignmentInputFile(infl.InputFile):
         self.fileName = self.checkFileExists(fileName)
         self.fileType = self.checkFileType(fileName)
         self.giCount = {}
+        self.readCount = {}
         self.taxCount = {}
         self.giToTax = {}
     def checkFileType(self,fileName):
@@ -78,10 +79,24 @@ class AlignmentInputFile(infl.InputFile):
             for line in self.genLine(printProgress=True):
                 data = line.split("\t")
                 gi = data[1].split("|")[1]
+                readName = data[0]
                 if gi not in self.giCount:
-                    self.giCount[gi] = 1
+                    self.giCount[gi] = {readName:1}
+                elif readName not in self.giCount[gi]:
+                    self.giCount[gi][readName] = 1
                 else:
-                    self.giCount[gi] += 1
+                    self.giCount[gi][readName] += 1
+                if readName not in self.readCount:
+                    self.readCount[readName] = 1
+                else:
+                    self.readCount[readName] += 1
+            self.normalizeCounts()
+    def normalizeCounts(self):
+        for gi in self.giCount:
+            sum = 0
+            for readName in self.giCount[gi]:
+                sum += (self.giCount[gi][readName]/self.readCount[readName])
+            self.giCount[gi] = sum
     def convertGiToTax(self):
         print "Converting GIs to TaxIDs"
         giTaxTable = TaxDb.MySqlTable("giTax")
