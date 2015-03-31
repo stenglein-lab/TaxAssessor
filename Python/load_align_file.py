@@ -4,6 +4,7 @@ import os.path
 import sys
 import InputFile as infl
 import TaxDb
+from multiprocessing import Process
 
 """
 load_align_file.py - 
@@ -27,6 +28,7 @@ class AlignmentInputFile(infl.InputFile):
         self.fileType = self.checkFileType(fileName)
         self.giCount = {}
         self.taxCount = {}
+        self.giToTax = {}
     def checkFileType(self,fileName):
         temp,fileExt = os.path.splitext(fileName)
         if fileExt == ".blast":
@@ -47,11 +49,9 @@ class AlignmentInputFile(infl.InputFile):
         with open(self.fileName,"r") as inFile:
             line = inFile.readline()
         tabLine = line.split("\t")
-
         #check if first line exists
         if len(tabLine) == 0:
             raise IOError(err+"\nCould not parse first line.")
-        
         #check if blast file first
         try: 
             for index in xrange(2,12):
@@ -60,7 +60,6 @@ class AlignmentInputFile(infl.InputFile):
             return "BLAST"
         except ValueError:
             fileType = None
-
         try: 
             for index in [1,3,4]:
                 value = float(tabLine[index])
@@ -71,7 +70,6 @@ class AlignmentInputFile(infl.InputFile):
 
         if fileTyle == None:
             raise IOError(err+"\nUnable to determine filetype from line")
-
     def importAlignmentData(self):
         if self.fileType == "SAM":
             raise IOError("Cannot read SAM files yet")
@@ -88,6 +86,7 @@ class AlignmentInputFile(infl.InputFile):
         print "Converting GIs to TaxIDs"
         giTaxTable = TaxDb.MySqlTable("giTax")
         count = 0 
+        print len(self.giCount)
         for gi in self.giCount:
             count += 1
             if count % 100000 == 0:
@@ -99,60 +98,58 @@ class AlignmentInputFile(infl.InputFile):
                 self.taxCount[taxId] += self.giCount[gi]
             else:
                 self.taxCount[taxId] = self.giCount[gi]
+            self.giToTax[gi] = taxId
     def loadIntoDbTable(self):
         alignTable = TaxDb.MySqlTable("alignInfo")
-        count = 0
-        importData = []
         if self.fileType == "SAM":
             raise IOError("cannot import SAM file into DB yet")
         elif self.fileType == "BLAST":
-            alignTable.createTable({"id"          : "INT(11) NOT NULL",
-                                    "readName"    : "VARCHAR(20) NOT NULL"     ,
-                                    "gi"          : "INT(11) NOT NULL",
-                                    "percentId"   : "FLOAT NOT NULL"  ,
-                                    "alignLength" : "INT(11) NOT NULL",
-                                    "nMisMatch"   : "INT(11) NOT NULL",
-                                    "nGapOpens"   : "INT(11) NOT NULL",
-                                    "qStartPos"   : "INT(11) NOT NULL",
-                                    "qEndPos"     : "INT(11) NOT NULL",
-                                    "tStartPos"   : "INT(11) NOT NULL",
-                                    "tEndPos"     : "INT(11) NOT NULL",
-                                    "eValue"      : "FLOAT NOT NULL"  ,
-                                    "bitScore"    : "FLOAT NOT NULL"  ,
-                                    "taxID"       : "VARCHAR(20) NOT NULL"},
-                                    index="taxID")
-            fields = ["id","readName","gi","percentId","alignLength",
-                      "nMismatch","nGapOpens","qStartPos","qEndPos",
-                      "tStartPos","tEndPos","eValue","bitScore","taxID"]
-            with open(self.fileName,"r") as inFile:
-                giTaxTable = TaxDb.MySqlTable("giTax")
-                for line in self.genLine(printProgress=True):
-                    count += 1
-                    data = self.blastLineExtract(line,count,giTaxTable)
-                    importData.append(data)
-                    if count % 40000 == 0:
+            self.createBlastTable(alignTable)
+        alignTable.close()
+    def createBlastTable(self,alignTable):
+        count = 0
+        importData = []
+        alignTable.createTable({"readName"    : "VARCHAR(20) NOT NULL"     ,
+                                "gi"          : "INT(11) NOT NULL",
+                                "percentId"   : "FLOAT NOT NULL"  ,
+                                "alignLength" : "INT(11) NOT NULL",
+                                "nMisMatch"   : "INT(11) NOT NULL",
+                                "nGapOpens"   : "INT(11) NOT NULL",
+                                "qStartPos"   : "INT(11) NOT NULL",
+                                "qEndPos"     : "INT(11) NOT NULL",
+                                "tStartPos"   : "INT(11) NOT NULL",
+                                "tEndPos"     : "INT(11) NOT NULL",
+                                "eValue"      : "FLOAT NOT NULL"  ,
+                                "bitScore"    : "FLOAT NOT NULL"  ,
+                                "taxID"       : "VARCHAR(20) NOT NULL"},
+                                index="taxID")
+        fields = ["readName","gi","percentId","alignLength",
+                  "nMismatch","nGapOpens","qStartPos","qEndPos",
+                  "tStartPos","tEndPos","eValue","bitScore","taxID"]
+        with open(self.fileName,"r") as inFile:
+            dbDump = 30000
+            print "Importing BLAST file into db"
+            for line in self.genLine(printProgress=True):
+                count += 1
+                data = self.blastLineExtract(line)
+                #print fields
+                #print data
+                importData.append(data)
+                if count % dbDump == 0:
+                    if count % (dbDump*4) == 0:
                         print count
-                        alignTable.addItems(fields,importData)        
-                        importData = []
-                giTaxTable.close()
-    def blastLineExtract(self,line,count,giTaxTable):
+                    alignTable.addItems(fields,importData)
+                    importData = []
+
+    def blastLineExtract(self,line):
         data = line.split("\t")
-        readName    = data[0]
-        gi          = int(data[1].split("|")[1])
-        percentId   = float(data[2])
-        alignLength = int(data[3])
-        nMismatch   = int(data[4])
-        nGapOpens   = int(data[5])
-        qStartPos   = int(data[6])
-        qEndPos     = int(data[7])
-        tStartPos   = int(data[8])
-        tEndPos     = int(data[9])
-        eValue      = float(data[10])
-        bitScore    = float(data[11].rstrip("\n"))
-        taxId       = giTaxTable.readItemFromRow("gi",gi,"taxID")
-        data = (count,readName,gi,percentId,alignLength,nMismatch,nGapOpens,
-                qStartPos,qEndPos,tStartPos,tEndPos,eValue,bitScore,taxId)
+        data[1]  = data[1].split("|")[1]
+        data[11] = data[11].rstrip("\n")
+        taxId = self.giToTax[data[1]]
+        data.append(taxId)
+        data = tuple(data)
         return data
+
 
 """
 Specialized file input for blast6 output file format. Python list returns:
@@ -197,9 +194,9 @@ of alignment.
 
 def main(argv):
     inputFile = AlignmentInputFile(argv[0])
+    inputFile.importAlignmentData()
+    inputFile.convertGiToTax()
     inputFile.loadIntoDbTable()
-    #inputFile.importAlignmentData()
-    #inputFile.convertGiToTax()
 
 if __name__ == "__main__":
     try:

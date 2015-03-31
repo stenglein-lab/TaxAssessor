@@ -23,18 +23,14 @@ treeJSON = d3.json("../javascript/tree.json", function(error, treeData) {
         .attr("height", height + margin.top + margin.bottom)
         .append("g")
         .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
-        
-//     var tooltip = d3.select("body")
-//         .append("div")
-//         .style("position","absolute")
-//         .style("z-index","10")
-//         .style("visibility","hidden")
-//         .text("test")
-//         .style("font-size","10px")
-//         .style("font-family","sans-serif")
-//         .style("text-align","center");
 
-    //window.alert(treeData.size);
+    var menu = [
+        {title: 'Item #1',
+        action: function(d) {
+            console.log('Item #1 clicked!');}},
+        {title: 'Item #2',
+        action: function(d) {
+            console.log('You have clicked the second item!');}}]
 
     root = treeData;
 
@@ -44,10 +40,6 @@ treeJSON = d3.json("../javascript/tree.json", function(error, treeData) {
             toggle(d);
         }
     }
-
-    root.children.forEach(toggleAll);
-
-    update(root);
 
     function toggle(d) {
         if (d.children) {
@@ -59,31 +51,27 @@ treeJSON = d3.json("../javascript/tree.json", function(error, treeData) {
         }
     }
 
+    root.children.forEach(toggleAll);
+
+    update(root);
+    
     function update(source) {
 
         var duration = d3.event && d3.event.altKey ? 5000 : 500;
     
-        var nodes = tree.nodes(root).reverse();
-    
+        var nodes = tree.nodes(root);
+            
         nodes.forEach(function(d) { d.y = d.depth * 200; });
     
         var node = svg.selectAll("g.node")
-            .data(nodes, function(d) { return d.id || (d.id = ++i); });
-        
+            .data(nodes, function(d) { return d.id || (d.id = ++i); })  ;      
+            
         var nodeEnter = node.enter().append("g")
             .attr("class", "node")
             .attr("transform", function(d) { 
                 return "translate(" + source.y0 + "," + source.x0 + ")"; })
             .on("click", function(d) { toggle(d); update(d); });
-//             .on("mouseover", function(d) {
-//                 return tooltip.style("visibility","visible")
-//                               .text("Size: "+d.size)
-//                               .style("top",d.x+45+"px")
-//                               .style("left",d.y+100+"px");})
-//             .on("mouseout", function() {
-//                 return tooltip.style("visibility","hidden")});
 
-        
         nodeEnter.append("circle")
             .attr("r",1)
             .style("fill", function(d) { 
@@ -172,6 +160,9 @@ treeJSON = d3.json("../javascript/tree.json", function(error, treeData) {
             d.x0 = d.x;
             d.y0 = d.y;
         });
+        
+        svg.selectAll('circle')
+            .on('contextmenu', d3.contextMenu(menu));
     }
-   
+
 });
