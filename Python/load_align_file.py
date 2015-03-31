@@ -16,7 +16,6 @@ extension is unrecognized, read the first line of the file and attempt to
 infer the file type.
 """
 
-
 class AlignmentInputFile(infl.InputFile):
     """
     File input class to check file existence and if the file type is 
@@ -27,7 +26,7 @@ class AlignmentInputFile(infl.InputFile):
         self.fileName = self.checkFileExists(fileName)
         self.fileType = self.checkFileType(fileName)
         self.giCount = {}
-        self.readCount = {}
+        self.readScores = {}
         self.taxCount = {}
         self.giToTax = {}
     def checkFileType(self,fileName):
@@ -80,24 +79,37 @@ class AlignmentInputFile(infl.InputFile):
                 data = line.split("\t")
                 gi = data[1].split("|")[1]
                 readName = data[0]
+                readScore = float(data[11])
                 if gi not in self.giCount:
-                    self.giCount[gi] = {readName:1}
+                    self.giCount[gi] = {readName:[readScore]}
                 elif readName not in self.giCount[gi]:
-                    self.giCount[gi][readName] = 1
+                    self.giCount[gi][readName] = [readScore]
                 else:
-                    self.giCount[gi][readName] += 1
-                if readName not in self.readCount:
-                    self.readCount[readName] = 1
+                    self.giCount[gi][readName].append(readScore)
+                if readName not in self.readScores:
+                    self.readScores[readName] = [readScore]
                 else:
-                    self.readCount[readName] += 1
+                    self.readScores[readName].append(readScore)
+
             self.normalizeCounts()
     def normalizeCounts(self):
+        print "Normalizing Counts"
+        for readName in self.readScores:
+            maxVal = max(self.readScores[readName])
+            count = 0
+            for score in self.readScores[readName]:
+                if score >= maxVal:
+                    count += 1
+            self.readScores[readName] = {"score":maxVal,"count":count,
+                                         "increment":(1.0/float(count))}
         for gi in self.giCount:
             sum = 0
             for readName in self.giCount[gi]:
-                sum += (float(self.giCount[gi][readName])/
-                        float(self.readCount[readName]))
+                for score in self.giCount[gi][readName]:
+                    if score >= self.readScores[readName]["score"]:
+                        sum += self.readScores[readName]["increment"] 
             self.giCount[gi] = int(sum)
+
     def convertGiToTax(self):
         print "Converting GIs to TaxIDs"
         giTaxTable = TaxDb.MySqlTable("giTax")
