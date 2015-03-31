@@ -96,7 +96,7 @@ treeJSON = d3.json("../javascript/tree.json", function(error, treeData) {
     //        .attr("text-anchor", function(d) { 
     //            return d.children || d._children ? "end" : "start"; })
             .attr("text-anchor","end")
-            .text(function(d) { return d.size; })
+            .text(function(d) { return (d.size).toFixed(2); })
             .style("fill-opacity", 1);
     
         var nodeUpdate = node.transition()

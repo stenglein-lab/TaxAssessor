@@ -40,7 +40,7 @@ def main(argv):
 
     print "Writing File"
     dj = json.dumps(taxTree.tree)
-    with open("tree.json","w") as outFile:
+    with open("../javascript/tree.json","w") as outFile:
         outFile.write(dj)
 
 if __name__ == "__main__": 

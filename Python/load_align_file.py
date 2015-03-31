@@ -108,7 +108,7 @@ class AlignmentInputFile(infl.InputFile):
                 for score in self.giCount[gi][readName]:
                     if score >= self.readScores[readName]["score"]:
                         sum += self.readScores[readName]["increment"] 
-            self.giCount[gi] = int(sum)
+            self.giCount[gi] = sum
 
     def convertGiToTax(self):
         print "Converting GIs to TaxIDs"
