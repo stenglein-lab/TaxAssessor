@@ -1,0 +1,70 @@
+/* this is a custom css stylesheet */
+
+.form-signin input[type="email"] {
+    margin-bottom: -1px;
+    border-bottom-right-radius: 0;
+    border-bottom-left-radius: 0;
+}
+.form-signin input[type="password"] {
+    margin-bottom: 10px;
+    border-top-left-radius: 0;
+    border-top-right-radius: 0;
+}
+
+footer {
+    padding: 2em 0;
+    margin: 3em 0;
+    border-top: 1px solid #ddd;
+    color: #999;
+    text-align: center;
+}
+
+@media (min-width: 768px ) {
+    .row {
+        position: relative;
+    }
+
+    .bottom-right-align-text {
+        position: absolute;
+        bottom: 0;
+        right: 0;
+        text-align: right;
+        padding-right: 20px;
+    }
+}
+
+.pull-right.img-responsive {
+    margin: 0 0 1em 1em;
+}
+
+.btn-info {
+    background-color: #ddd;
+    border-color: #999;
+    color: #000000;
+}
+
+.btn-info:hover,
+.btn-info:focus,
+.btn-info:active,
+.btn-info.active,
+.open .dropdown-toggle.btn-info {
+    background-color: #999;
+    border-color: #999;
+    color: #FFFFFF;    
+}
+
+.navbar-default .navbar-brand {
+    border-style: solid;   
+    border-width: 0px;
+    border-right-color: #9C9EA0;
+    border-right-width: 1px;
+    color: #555;
+    font-size: 100%;
+    cursor: pointer;
+}
+
+.navbar-default .navbar-brand:hover,
+.navbar-default .navbar-brand:focus {
+  color: #555;
+  background-color: transparent;
+}

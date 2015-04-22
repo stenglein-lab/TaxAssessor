@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+
+    {% block head %}
+        <link href="{{ static_url("css/index.css") }}" rel="stylesheet">
+    {% end %}
+
+
+    {% block login-info %}
+        <p>
+            Login for access - 
+            <a href="#loginModal" data-toggle="modal">
+                Login
+            </a>
+        </p>
+    {% end %}
+
+    {% block file-menu %}
+        <li><a href="#loginModal" data-toggle="modal">Log in</a></li>
+        <li class="divider"></li>
+        <li><a href="#">Upload</a></li>
+        <li><a href="#">Export</a></li>
+        <li><a href="#">Close</a></li>
+        <li class="divider"></li>
+        <li class="dropdown-header">Nav header</li>
+        <li><a href="#">Separated link</a></li>
+        <li><a href="#">One more separated link</a></li>
+    {% end %}
+
+    {% block remaining-navbar %}
+        <li class="dropdown">
+            <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false">Statistics <span class="caret"></span></a>
+            <ul class="dropdown-menu" role="menu">
+                <li><a href="#">Reads</a></li>
+                <li><a href="#">Alignment</a></li>
+                <li><a href="#">Taxonomy</a></li>
+            </ul>
+        </li>
+        <li class="dropdown">
+            <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false">Data Visualization<span class="caret"></span></a>
+            <ul class="dropdown-menu" role="menu">
+                <li><a href="#">Tree</a></li>
+                <li><a href="#">Sunburst</a></li>
+                <li><a href="#">Block</a></li>
+            </ul>
+        </li>
+    {% end %}
+
+
+    {% block body %}
+        <div class="col-lg-12">
+            <p> Index body placeholder </p>
+        </div>
+    {% end %}
+
+    {% block modals %}
+        <div id="loginModal" class="modal fade" tabindex="-1">
+            <div class="modal-dialog modal-sm">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <button type="button" class="close glyphicon glyphicon-remove" style="color:#000" data-dismiss="modal"></button>
+                        <h3 class="modal-title">Login</h3>
+                    </div>
+                    <div class="modal-body">
+                        <form action="/auth/login/" method="post" id="login_form" class="form-signin">
+                            <fieldset>
+                                <label for="inputEmail" class="sr-only">Email address</label>
+                                <input type="email" id="username" class="form-control" placeholder="Email address" required autofocus>
+                            </fieldset>
+                            <fieldset>
+                                <label for="inputPassword" class="sr-only">Password</label>
+                                <input type="password" id="password" class="form-control" placeholder="Password" required>
+                            </fieldset>
+                            <fieldset>
+                                <div class="checkbox">
+                                    <label class="col-lg-6 col-sm-6">
+                                        <input type="checkbox" value="remember-me"> Remember me
+                                    </label>
+                                    <p class="col-lg-6 col-sm-6 text-right">
+                                        <a href="#registerModal" data-dismiss="modal" data-toggle="modal">New user?</a>
+                                    </p>
+                                </div>
+                            </fieldset>
+                            <fieldset>
+                                <button class="btn btn-lg btn-primary btn-block" type="submit">Sign in</button>
+                            </fieldset>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="registerModal" class="modal fade" tabindex="-1">
+            <div class="modal-dialog modal-sm">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <button type="button" class="close glyphicon glyphicon-remove" style="color:#000" data-dismiss="modal"></button>
+                        <h3 class="modal-title">Register</h3>
+                    </div>
+                    <div class="modal-body">
+                        <form action="stuff" method="post" id="register_form" class="form-register">
+                            <fieldset>
+                                <label for="firstName" class="label-regstr">First Name</label>
+                                <input type="firstName" id="firstName" class="form-control" placeholder="First Name" required autofocus>
+                            </fieldset>
+                            <fieldset>
+                                <label for="lastName" class="label-regstr">Last Name</label>
+                                <input type="lastName" id="lastName" class="form-control" placeholder="Last Name" required>
+                            </fieldset>
+                            <fieldset>
+                                <label for="email" class="label-regstr">Email Address</label>
+                                <input type="email" id="email" class="form-control" placeholder="Email Address" required>
+                            </fieldset>
+                            <fieldset>
+                                <label for="password" class="label-regstr">Password</label>
+                                <input type="password" id="password" class="form-control" placeholder="Password" required>
+                            </fieldset>
+                            <fieldset>
+                                <button class="btn btn-lg btn-primary btn-block-regstr" type="submit">Register</button>
+                            </fieldset>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    {% end %}
