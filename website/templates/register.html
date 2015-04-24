@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+    {% block head %}
+        <link href="{{ static_url("css/login.css") }}" rel="stylesheet">
+    {% end %}
+
+    {% block body %}
+        <form action="/register" method="post" id="register_form" class="form-register">
+            {% raw xsrf_form_html() %}
+            <fieldset>
+                <label for="firstName" class="label-regstr">First Name</label>
+                <input type="firstName" name="firstName" id="firstName" class="form-control" placeholder="First Name" required autofocus/>
+            </fieldset>
+            <fieldset>
+                <label for="lastName" class="label-regstr">Last Name</label>
+                <input type="lastName" name="lastName" id="lastName" class="form-control" placeholder="Last Name" required/>
+            </fieldset>
+            <fieldset>
+                <label for="email" class="label-regstr">Email Address</label>
+                <input type="email" name="emailAddress" id="email" class="form-control" placeholder="Email Address" required/>
+            </fieldset>
+            <fieldset>
+                <label for="password" class="label-regstr">Password</label>
+                <input type="password" name="password" id="password" class="form-control" placeholder="Password" required/>
+            </fieldset>
+            <fieldset>
+                <button class="btn btn-lg btn-primary btn-block btn-block-regstr" type="submit">Register</button>
+            </fieldset>
+        </form> 
+        <p class="errorMessage">{{error}}</p>
+    {% end %}
+
+

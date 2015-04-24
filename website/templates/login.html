@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+    {% block head %}
+        <link href="{{ static_url("css/login.css") }}" rel="stylesheet">
+    {% end %}
+
+    {% block body %}
+        <form action="/login" method="post" id="login_form" class="form-signin">
+            {% raw xsrf_form_html() %}
+            <fieldset>
+                <label for="emailAddress" class="sr-only">Email address</label>
+                <input type="email" name="emailAddress" id="emailAddress" class="form-control" placeholder="Email address" required autofocus/>
+            </fieldset>
+            <fieldset>
+                <label for="inputPassword" class="sr-only">Password</label>
+                <input type="password" name="password" id="password" class="form-control" placeholder="Password" required/>
+            </fieldset>
+            <fieldset>
+                <div class="checkbox">
+                    <label class="col-lg-6 col-sm-6">
+                        <input type="checkbox" value="remember-me"> Remember me
+                    </label>
+                    <p class="col-lg-6 col-sm-6 text-right">
+                        <a href="#registerModal" data-dismiss="modal" data-toggle="modal">New user?</a>
+                    </p>
+                </div>
+            </fieldset>
+            <fieldset>
+                <button class="btn btn-lg btn-primary btn-block" type="submit">Sign in</button>
+            </fieldset>
+        </form> 
+        <p class="errorMessage"> {{error}} </p>
+    {% end %}
+
+
+    {% block modals %}
+        <div id="registerModal" class="modal fade" tabindex="-1">
+            <div class="modal-dialog modal-sm">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <button type="button" class="close glyphicon glyphicon-remove" style="color:#000" data-dismiss="modal"></button>
+                        <h3 class="modal-title">Register</h3>
+                    </div>
+                    <div class="modal-body">
+                        <form action="/register" method="post" id="register_form" class="form-register">
+                            {% raw xsrf_form_html() %}
+                            <fieldset>
+                                <label for="firstName" class="label-regstr">First Name</label>
+                                <input type="firstName" name="firstName" id="firstName" class="form-control" placeholder="First Name" required autofocus/>
+                            </fieldset>
+                            <fieldset>
+                                <label for="lastName" class="label-regstr">Last Name</label>
+                                <input type="lastName" name="lastName" id="lastName" class="form-control" placeholder="Last Name" required/>
+                            </fieldset>
+                            <fieldset>
+                                <label for="email" class="label-regstr">Email Address</label>
+                                <input type="email" name="emailAddress" id="email" class="form-control" placeholder="Email Address" required/>
+                            </fieldset>
+                            <fieldset>
+                                <label for="password" class="label-regstr">Password</label>
+                                <input type="password" name="password" id="password" class="form-control" placeholder="Password" required/>
+                            </fieldset>
+                            <fieldset>
+                                <button class="btn btn-lg btn-primary btn-block-regstr" type="submit">Register</button>
+                            </fieldset>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% end %}
+

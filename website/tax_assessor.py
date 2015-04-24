@@ -1,36 +1,37 @@
 #!/usr/bin/python
-import tornado.auth
-import tornado.escape
-import tornado.httpserver
+import os.path
+import logging
+import handlers
 import tornado.ioloop
-import tornado.options
-import tornado.web
-import tax_settings
 
 from tornado.options import define, options
 
-define("port", default=2222, help="run on the given port", type=int)
 
-class MainHandler(tornado.web.RequestHandler):
-    def get(self):
-        self.render("index.html")
+app_port = 2222
 
-class Application(tornado.web.Application):
-    def __init__(self):
-        handlers = [
-            (r"/", MainHandler),
-        ]
-        settings = {
-            "template_path":tax_settings.TEMPLATE_PATH,
-            "static_path"  :tax_settings.STATIC_PATH,
-            "debug"        :tax_settings.DEBUG,
-        }
-        tornado.web.Application.__init__(self, handlers, **settings)
 
 def main():
-    tornado.options.parse_command_line()
-    http_server = tornado.httpserver.HTTPServer(Application())
-    http_server.listen(options.port)
+
+    this_dir = os.path.dirname(__file__)
+
+    app_handlers = [
+            (r'/',          handlers.Index),
+            (r'/login',     handlers.Login),
+            (r'/register',  handlers.Register),
+            (r'/logout',    handlers.Logout)
+    ]
+
+    options = { 'debug':            True,
+                'template_path':    os.path.join(this_dir,'templates'),
+                'static_path':      os.path.join(this_dir,'static'),
+                'cookie_secret':    "2sH6$OurX;v-{S?Llo7r+cL}PJH-!v",
+                'xsrf_cookies':     True,
+                'login_url':        '/login'
+    }
+
+    app = handlers.TaxAssessor(app_handlers,**options)
+    app.listen(app_port)
+
     tornado.ioloop.IOLoop.instance().start()
 
 if __name__ == "__main__":

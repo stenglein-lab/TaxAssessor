@@ -1,3 +1,13 @@
+.form-signin {
+    max-width: 350px;
+    margin: 0 auto;
+}
+
+.form-register {
+    max-width: 350px;
+    margin: 0 auto;
+}
+
 .btn-block-regstr {
     display: block;
     width: 100%;
@@ -19,3 +29,8 @@
     border-top-right-radius: 0;
 }
 
+.errorMessage {
+    margin-top: 5px;
+    color: red;
+    text-align: center;
+}
