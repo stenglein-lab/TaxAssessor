@@ -1,0 +1,25 @@
+<form action="/login" method="post" id="login_form" class="form-signin">
+    {% raw xsrf_form_html() %}
+    <fieldset>
+        <label for="emailAddress" class="sr-only">Email address</label>
+        <input type="email" name="emailAddress" id="emailAddress" class="form-control" placeholder="Email address" required autofocus/>
+    </fieldset>
+    <fieldset>
+        <label for="inputPassword" class="sr-only">Password</label>
+        <input type="password" name="password" id="password" class="form-control" placeholder="Password" required/>
+    </fieldset>
+    <fieldset>
+        <div class="checkbox">
+            <label class="col-lg-6 col-sm-6">
+                <input type="checkbox" value="remember-me"> Remember me
+            </label>
+            <p class="col-lg-6 col-sm-6 text-right">
+                <a href="#registerModal" data-dismiss="modal" data-toggle="modal">New user?</a>
+            </p>
+        </div>
+    </fieldset>
+    <fieldset>
+        <button class="btn btn-lg btn-primary btn-block" type="submit">Sign in</button>
+    </fieldset>
+</form> 
+<p class="errorMessage"> {{error}} </p>

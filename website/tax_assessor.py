@@ -18,7 +18,9 @@ def main():
             (r'/',          handlers.Index),
             (r'/login',     handlers.Login),
             (r'/register',  handlers.Register),
-            (r'/logout',    handlers.Logout)
+            (r'/logout',    handlers.Logout),
+            (r'/upload',    handlers.Upload),
+            (r'/open',      handlers.Open)
     ]
 
     options = { 'debug':            True,
@@ -30,7 +32,7 @@ def main():
     }
 
     app = handlers.TaxAssessor(app_handlers,**options)
-    app.listen(app_port)
+    app.listen(app_port,max_buffer_size=(4*1024**3))
 
     tornado.ioloop.IOLoop.instance().start()
 

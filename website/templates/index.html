@@ -23,8 +23,8 @@
         <li class="dropdown">
             <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false">File <span class="caret"></span></a>
             <ul class="dropdown-menu" role="menu">
-                <li><a href="#">Upload</a></li>
-                <li><a href="#">Open</a></li>
+                <li><a href="#uploadModal" data-toggle="modal">Upload</a></li>
+                <li><a href="#openModal" data-toggle="modal">Open</a></li>
                 <li><a href="#">Export</a></li>
                 <li class="divider"></li>
                 <li><a href="/logout" data-toggle="modal">Logout</a></li>
@@ -50,7 +50,7 @@
         <li class="dropdown">
             <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false">File <span class="caret"></span></a>
             <ul class="dropdown-menu" role="menu">
-                <li><a href="/login" data-toggle="modal">Login</a></li>
+                <li><a href="#loginModal" data-toggle="modal">Login</a></li>
             </ul>
         </li> 
         {% end %}
@@ -64,6 +64,7 @@
     {% end %}
 
     {% block modals %}
+        {% if user == None %}
         <div id="loginModal" class="modal fade" tabindex="-1">
             <div class="modal-dialog modal-sm">
                 <div class="modal-content">
@@ -136,4 +137,56 @@
             </div>
         </div>
 
+        {% else %}
+        <div id="uploadModal" class="modal fade" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <button type="button" class="close glyphicon glyphicon-remove" style="color:#000" data-dismiss="modal"></button>
+                        <h3 class="modal-title">Upload file</h3>
+                    </div>
+                    <div class="modal-body">
+                        <form enctype="multipart/form-data" action="/upload" method="post" id="upload_form" class="form-upload">
+                            {% raw xsrf_form_html() %}
+                            <input type="file" name="upFile" required/>
+                            <button class="btn btn-lg btn-primary btn-block-submit" type="submit">Submit</button>
+                        </form>
+                        <div class="errorMessage" id="uploadErrorMessage" style="display:none">
+                            No file selected
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="openModal" class="modal fade" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <button type="button" class="close glyphicon glyphicon-remove" style="color:#000" data-dismiss="modal"></button>
+                        <h3 class="modal-title">Open file</h3>
+                    </div>
+                    <div class="modal-body">
+                        <form enctype="multipart/form-data" action="/open" method="post" id="open_form" class="form-open">
+                            {% raw xsrf_form_html() %}
+                            <select multiple class="form-control input-medium" name="fileName" required>
+                                {% for fileName in fileListing %}
+                                    <option>{{fileName}}</option>
+                                {% end %}
+                            </select>
+                            <button class="btn btn-lg btn-primary btn-block-submit" type="submit">Submit</button>
+                        </form>
+                        <div class="errorMessage" id="uploadErrorMessage" style="display:none">
+                            No file selected
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {% end %}
+    {% end %}
+
+    {% block scripts %}
+        <script src="{{ static_url('js/checkform_index.js') }}"></script>
     {% end %}
