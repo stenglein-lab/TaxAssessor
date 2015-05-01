@@ -60,7 +60,7 @@ class BaseHandler(tornado.web.RequestHandler):
             fileNames = json.loads(fileNames)
             return fileNames["filenames"]
         except Exception:
-            return None
+            return []
 
     def executeDbCommand(self,cmd,params=None):
         try:
@@ -155,8 +155,8 @@ class Register(Login):
                 if char in entry:
                     errorMessage = "Invalid character detected"
                     return errorMessage,False
-        cmd = "SELECT username FROM users WHERE username='{}'".format(username)
-        db = self.executeDbCommand(cmd)
+        cmd = "SELECT username FROM users WHERE username=%s;"
+        db = self.executeDbCommand(cmd,username)
         row = db.fetchone()
         if row is not None:
             errorMessage = "Email address already registered"
@@ -168,6 +168,7 @@ class Logout(BaseHandler):
     @tornado.web.authenticated
     def get(self):
         self.clear_cookie("TaxUser")
+        self.clear_cookie("TaxFiles")
         self.redirect("/")
 
 class Upload(BaseHandler):
@@ -177,6 +178,7 @@ class Upload(BaseHandler):
 
     @tornado.web.authenticated
     def post(self):
+        print "posted"
         uploadProcess = Process(target=self.getFile())
         uploadProcess.start()
         self.redirect("/")
@@ -184,12 +186,13 @@ class Upload(BaseHandler):
     def getFile(self):
         try:
             fileInfo = self.request.files['upFile'][0]
-            print "File Upload: "+str(fileInfo['filename'])
         except Exception:
             self.write("Error receiving file")
             return
         username = self.get_current_username()
         fileName = fileInfo['filename']
+        print username,fileName
+        print "Uploading: ",fileName
         try:
             os.mkdir("uploads/"+username)
         except OSError:
@@ -197,8 +200,9 @@ class Upload(BaseHandler):
         with open("uploads/"+username+"/"+fileInfo['filename'],"w") as inFile:
             inFile.write(fileInfo['body'])
         try:
-            cmd = "INSERT INTO files (username,filename) VALUES (%s,%s)"
-            params = (username,fileName)
+            cmd = "INSERT INTO files (username,filename) VALUES (%s,%s);"
+            params = (username.encode("ascii"),fileName.encode("ascii"))
+            print cmd,params
             self.executeDbCommand(cmd,params)
             self.application.db.commit()
         except Exception:
@@ -213,12 +217,30 @@ class Open(BaseHandler):
     def get(self):
         pass
 
+    @tornado.web.authenticated
     def post(self):
         fileName = self.get_argument("fileName")
-        print fileName
         self.redirect("/")
 
-
+class Delete(BaseHandler):
+    def get(self):
+        pass
+ 
+    @tornado.web.authenticated
+    def post(self):
+        fileName = self.get_argument("fileName")
+        username = self.get_current_username()
+        try:
+            os.remove("uploads/"+username+"/"+fileName)
+        except Exception:
+            pass
+        try:
+            cmd = "DELETE FROM files WHERE username=%s and filename=%s;"
+            self.executeDbCommand(cmd,(username,fileName))
+        except Exception:
+            pass
+        self.set_fileListing_cookie(username)
+        self.redirect("/")
 
 
 

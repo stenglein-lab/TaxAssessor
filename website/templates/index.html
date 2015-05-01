@@ -25,6 +25,7 @@
             <ul class="dropdown-menu" role="menu">
                 <li><a href="#uploadModal" data-toggle="modal">Upload</a></li>
                 <li><a href="#openModal" data-toggle="modal">Open</a></li>
+                <li><a href="#deleteModal" data-toggle="modal">Delete</a></li>
                 <li><a href="#">Export</a></li>
                 <li class="divider"></li>
                 <li><a href="/logout" data-toggle="modal">Logout</a></li>
@@ -77,7 +78,7 @@
                             {% raw xsrf_form_html() %}
                             <fieldset>
                                 <label for="email" class="sr-only">Email address</label>
-                                <input type="email" name="emailAddress" id="emailAddress" class="form-control" placeholder="Email address" required autofocus/>
+                                <input type="email" name="emailAddress" id="emailAddress" class="form-control" placeholder="Email address" required/>
                             </fieldset>
                             <fieldset>
                                 <label for="inputPassword" class="sr-only">Password</label>
@@ -114,7 +115,7 @@
                             {% raw xsrf_form_html() %}
                             <fieldset>
                                 <label for="firstName" class="label-regstr">First Name</label>
-                                <input type="firstName" id="firstName" name="firstName" class="form-control" placeholder="First Name" required autofocus/>
+                                <input type="firstName" id="firstName" name="firstName" class="form-control" placeholder="First Name" required />
                             </fieldset>
                             <fieldset>
                                 <label for="lastName" class="label-regstr">Last Name</label>
@@ -146,11 +147,16 @@
                         <h3 class="modal-title">Upload file</h3>
                     </div>
                     <div class="modal-body">
-                        <form enctype="multipart/form-data" action="/upload" method="post" id="upload_form" class="form-upload">
+                        <form enctype="multipart/form-data" action="upload" method="post" id="upload_form" class="form-upload">
                             {% raw xsrf_form_html() %}
-                            <input type="file" name="upFile" required/>
-                            <button class="btn btn-lg btn-primary btn-block-submit" type="submit">Submit</button>
+                            <input type="file" name="upFile" id="upload_file" required/>
+                            <button class="btn btn-lg btn-primary btn-block-submit" id="upload_submit" type="submit">Submit</button>
                         </form>
+                        <br>
+                        <div class="progress" style="display:none;" id="upload_progress">
+                            <div class="progress-bar", role="progressbar" aria-valuenow="0" id="upload_progress_bar" aria-valuemax="100" aria-valuemin="0" style="width: 0%;">
+                            </div>
+                        </div>
                         <div class="errorMessage" id="uploadErrorMessage" style="display:none">
                             No file selected
                         </div>
@@ -176,7 +182,32 @@
                             </select>
                             <button class="btn btn-lg btn-primary btn-block-submit" type="submit">Submit</button>
                         </form>
-                        <div class="errorMessage" id="uploadErrorMessage" style="display:none">
+                        <div class="errorMessage" id="openErrorMessage" style="display:none">
+                            No file selected
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="deleteModal" class="modal fade" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header-delete">
+                        <button type="button" class="close glyphicon glyphicon-remove" style="color:#000" data-dismiss="modal"></button>
+                        <h3 class="modal-title">Delete file</h3>
+                    </div>
+                    <div class="modal-body">
+                        <form enctype="multipart/form-data" action="/delete" method="post" id="delete_form" class="form-delete">
+                            {% raw xsrf_form_html() %}
+                            <select multiple class="form-control input-medium" name="fileName" required>
+                                {% for fileName in fileListing %}
+                                    <option>{{fileName}}</option>
+                                {% end %}
+                            </select>
+                            <button class="btn btn-lg btn-danger btn-block-submit" type="submit">Delete</button>
+                        </form>
+                        <div class="errorMessage" id="deleteErrorMessage" style="display:none">
                             No file selected
                         </div>
                     </div>

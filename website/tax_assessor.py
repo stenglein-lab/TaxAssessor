@@ -20,7 +20,8 @@ def main():
             (r'/register',  handlers.Register),
             (r'/logout',    handlers.Logout),
             (r'/upload',    handlers.Upload),
-            (r'/open',      handlers.Open)
+            (r'/open',      handlers.Open),
+            (r'/delete',    handlers.Delete)
     ]
 
     options = { 'debug':            True,

@@ -17,7 +17,7 @@
 }
 
 .form-signin input[type="email"] {
-    margin-bottom: -1px;
+    margin-bottom: 0px;
     border-bottom-right-radius: 0;
     border-bottom-left-radius: 0;
 }
@@ -27,3 +27,19 @@
     border-top-right-radius: 0;
 }
 
+.form-signin .form-control:focus {
+  z-index: 2;
+}
+
+.modal-header-delete {
+  min-height: 16.42857143px;
+  padding: 15px;
+  border-bottom: 1px solid #e5e5e5;
+  background-color: #d9534f;
+  border-top-right-radius:5px;
+  border-top-left-radius:5px;
+  color:white;
+}
+.modal-header-delete .close {
+  margin-top: -2px;
+}
