@@ -2,6 +2,7 @@
 
     {% block head %}
         <link href="{{ static_url("css/index.css") }}" rel="stylesheet">
+        <link href="{{ static_url("css/testsvg.css") }}" rel="stylesheet">
     {% end %}
 
     {% block login-info %}
@@ -12,8 +13,10 @@
                 Login
             </a>
         {% else %}
-            Welcome {{user}}! - 
-            <a href="/logout">Logout</a>
+            <div id="username" value={{username}}>
+                Welcome {{user}}! -
+                <a href="/logout">Logout</a>
+            </div>
         {% end %}
         </p>
     {% end %}
@@ -23,14 +26,18 @@
         <li class="dropdown">
             <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false">File <span class="caret"></span></a>
             <ul class="dropdown-menu" role="menu">
-                <li><a href="#uploadModal" data-toggle="modal">Upload</a></li>
                 <li><a href="#openModal" data-toggle="modal">Open</a></li>
+                {% if openFile != None %}
+                    <li><a href="/close">Close</a></li>
+                {% end %}
+                <li class="divider"></li>
+                <li><a href="#uploadModal" data-toggle="modal">Upload</a></li>
                 <li><a href="#deleteModal" data-toggle="modal">Delete</a></li>
-                <li><a href="#">Export</a></li>
                 <li class="divider"></li>
                 <li><a href="/logout" data-toggle="modal">Logout</a></li>
             </ul>
         </li>
+        {% if openFile != None %}
         <li class="dropdown">
             <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false">Statistics <span class="caret"></span></a>
             <ul class="dropdown-menu" role="menu">
@@ -47,6 +54,7 @@
                 <li><a href="#">Block</a></li>
             </ul>
         </li>
+        {% end %}
         {% else %}
         <li class="dropdown">
             <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false">File <span class="caret"></span></a>
@@ -59,9 +67,14 @@
 
 
     {% block body %}
-        <div class="col-lg-12">
-            <p> Index body placeholder </p>
+        <div class="col-lg-12 col-sm-12" id="chart">
+        {% if openFile != None %}
+            <h4 id="openFile" value="{{openFile}}">{{openFile}}
+            <a type="button" class="close glyphicon glyphicon-remove" style="color:#000" href="/close"></a>
+            </h4>
+        {% end %}
         </div>
+
     {% end %}
 
     {% block modals %}
@@ -158,7 +171,6 @@
                             </div>
                         </div>
                         <div class="errorMessage" id="uploadErrorMessage" style="display:none">
-                            No file selected
                         </div>
                     </div>
                 </div>
@@ -175,7 +187,7 @@
                     <div class="modal-body">
                         <form enctype="multipart/form-data" action="/open" method="post" id="open_form" class="form-open">
                             {% raw xsrf_form_html() %}
-                            <select multiple class="form-control input-medium" name="fileName" required>
+                            <select multiple class="form-control input-medium" name="fileName" id="openFileList" required>
                                 {% for fileName in fileListing %}
                                     <option>{{fileName}}</option>
                                 {% end %}
@@ -183,7 +195,6 @@
                             <button class="btn btn-lg btn-primary btn-block-submit" type="submit">Submit</button>
                         </form>
                         <div class="errorMessage" id="openErrorMessage" style="display:none">
-                            No file selected
                         </div>
                     </div>
                 </div>
@@ -200,7 +211,7 @@
                     <div class="modal-body">
                         <form enctype="multipart/form-data" action="/delete" method="post" id="delete_form" class="form-delete">
                             {% raw xsrf_form_html() %}
-                            <select multiple class="form-control input-medium" name="fileName" required>
+                            <select multiple class="form-control input-medium" name="fileName" id="deleteFileList" required>
                                 {% for fileName in fileListing %}
                                     <option>{{fileName}}</option>
                                 {% end %}
@@ -208,7 +219,6 @@
                             <button class="btn btn-lg btn-danger btn-block-submit" type="submit">Delete</button>
                         </form>
                         <div class="errorMessage" id="deleteErrorMessage" style="display:none">
-                            No file selected
                         </div>
                     </div>
                 </div>
@@ -219,5 +229,8 @@
     {% end %}
 
     {% block scripts %}
+        {% if openFile != None %}
+            <script src="{{ static_url('js/testsvg.js') }}"></script>
+        {% end %}
         <script src="{{ static_url('js/checkform_index.js') }}"></script>
     {% end %}

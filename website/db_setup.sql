@@ -1,16 +1,20 @@
-CREATE DATABASE TaxAssessor;
+CREATE DATABASE TaxAssessor_Users;
 
-USE TaxAssessor;
+USE TaxAssessor_Users;
 
 CREATE TABLE users  (username VARCHAR(50) NOT NULL PRIMARY KEY,
                      password VARCHAR(128) NOT NULL,
                      firstName VARCHAR(50) NOT NULL,
                      lastName VARCHAR(50) NOT NULL,
-                     salt VARCHAR(32) NOT NULL);
+                     salt VARCHAR(32) NOT NULL,
+                     currentFile VARCHAR(128),
+                     INDEX (username));
 
 
 CREATE TABLE files  (username VARCHAR(50) NOT NULL,
                      filename VARCHAR(128) NOT NULL,
                      dateModified TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                     uniqueId INT(20) NOT NULL AUTO_INCREMENT,
                      FOREIGN KEY (username) REFERENCES users(username),
-                     PRIMARY KEY (username,filename));
+                     PRIMARY KEY (uniqueId),
+                     INDEX (username,filename));

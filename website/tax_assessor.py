@@ -5,6 +5,7 @@ import handlers
 import tornado.ioloop
 
 from tornado.options import define, options
+from tornado.web import StaticFileHandler
 
 
 app_port = 2222
@@ -21,7 +22,10 @@ def main():
             (r'/logout',    handlers.Logout),
             (r'/upload',    handlers.Upload),
             (r'/open',      handlers.Open),
-            (r'/delete',    handlers.Delete)
+            (r'/delete',    handlers.Delete),
+            (r'/docs/(.*)', tornado.web.StaticFileHandler, {'path':
+                '/home/jallison/TaxAssessor/website/uploads/'}),
+            (r'/close',     handlers.Close),
     ]
 
     options = { 'debug':            True,
