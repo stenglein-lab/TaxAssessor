@@ -74,8 +74,6 @@ class AlignFile():
         else:
             status.value = "Error: File already exists, please delete first!"
             
-        
-
     def deleteRecords(self):
         try:
             with TaxDb.openDb("TaxAssessor_Users") as db, \
@@ -97,6 +95,12 @@ class AlignFile():
                 db.commit()            
         except Exception:
             pass
+        
+        try:
+            os.remove("uploads/"+self.userName+"/"+self.fileName+".json")
+        except Exception:
+            pass
+            
             
         print "Deleted: "+self.fileName
 
