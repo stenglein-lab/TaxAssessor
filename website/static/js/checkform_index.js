@@ -40,6 +40,12 @@ function addManagerOption(fileName) {
     tableRef.appendChild(newRow);
 }
 
+function removeManagerOption() {
+    var table = document.getElementById('fileManageTable');
+    var count = table.rows.length;
+    table.removeChild(table[count-1]);
+}
+
 function deleteFile(formData,fileName) {
     $.ajax({
         url:"/delete",
@@ -76,17 +82,26 @@ function uploadFile(formData,fileName) {
         processData:false,
         cache:false,
         success:function(resp){
-            
+            console.log("success");
             $('#upload_button').prop('disabled', false);
             $('div#status').html(resp);
+            console.log(resp);
+            if (resp.indexOf("Error") > -1) {
+                console.log("Error'd");
+                newRow.setAttribute("class","danger");
+                newRow.cells[0].children[0].disabled=true;
+                newRow.cells[3].innerHTML = "ERROR";
+            } else {
+                newRow.cells[3].innerHTML = "Ready";
+            }
             showStatusMessage(resp,"managerErrorMessage");
-            newRow.cells[3].innerHTML = "Finished";
         },
         error:function(resp){
             $('#upload_button').prop('disabled', false);
             $('div#status').html(resp);
             showStatusMessage("ERROR UPLOADING FILE","managerErrorMessage");
             newRow.cells[3].innerHTML = "Error";
+            removeManagerOption()
         },
         xhr:function(){
             newRow.cells[3].setAttribute("id","progress-processing");
@@ -202,6 +217,24 @@ $("table :radio").change(function() {
     $(this).closest("tr").addClass("active"); //add active to radio selected tr
 });
 
+
+$("#vis_options").click(function() {
+    var link = $("#vis_options").parent(),
+        sidebar = $("#vis_options_sidebar"),
+        chart = $("#chart");
+    
+    if (link.hasClass("active")) {
+        link.removeClass("active");
+        sidebar.hide();
+        chart.removeClass("col-lg-10 col-md-10 col-lg-push-2 col-md-push-2");
+        chart.addClass("col-lg-12 col-md-12");
+    } else {
+        link.addClass("active");
+        sidebar.show();
+        chart.addClass("col-lg-10 col-md-10 col-lg-push-2 col-md-push-2");
+        chart.removeClass("col-lg-12 col-md-12");
+    };
+});
 
 
 

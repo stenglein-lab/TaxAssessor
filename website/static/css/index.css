@@ -86,3 +86,25 @@ input[readonly] {
   background-color: white !important;
   cursor: text !important;
 }
+
+@media (min-width: 1200px) {
+    .container{
+        max-width: 1200px;
+    }
+}
+
+.dropdown-options {
+    width: 700px !important;
+    height: 100px !important;
+    background: #F5F5F5;
+}
+
+.right-divider {
+	border-right: #DCDCDC 1px solid;
+}
+
+.left-sidebar {
+    border: #DCDCDC 1px solid;
+    border-radius: 5px;
+    padding: 10px;
+}

@@ -2,6 +2,9 @@ var username=$('#username').attr("value"),
     filename=$('#openFile').attr("value");
 
 var taxTreeJson = "../../docs/"+username+"/"+filename+".json";
+console.log(username);
+console.log(filename);
+console.log(taxTreeJson);
 
 var circleRadiusScale = "log";
 

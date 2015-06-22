@@ -39,14 +39,15 @@ class AlignFile():
                 cur.execute(cmd,(self.userName,self.fileName))
                 row = cur.fetchone()
                 if row != None:
-                    return False
+                    raise Exception
+                    return
                 else:
                     cmd = "INSERT INTO files (username,filename) VALUES (%s,%s);"
                     params = (self.userName.encode("ascii"),self.
                               fileName.encode("ascii"))
                     cur.execute(cmd,params)
                     db.commit()
-                    return True
+                    return
         def deleteDbEntry(self):
             with TaxDb.openDb("TaxAssessor_Users") as db, TaxDb.cursor(db) as cur:
                 cmd = "DELETE FROM files WHERE username=%s and filename=%s;"
@@ -64,15 +65,21 @@ class AlignFile():
             os.mkdir("uploads/"+self.userName)
         except OSError:
             pass
-        
-        if createDbEntry(self):
-            if not TaxLoad.loadFile(self.fileName,fileBody,self.userName):
-                deleteDbEntry(self)
-                status.value = "Error: File could not be impoted into database"
-            else:
-                status.value = "File upload & import successful!"
-        else:
+            
+        try:
+            createDbEntry(self)
+        except Exception:
             status.value = "Error: File already exists, please delete first!"
+            raise StopIteration
+        
+        try:
+            TaxLoad.loadFile(self.fileName,fileBody,self.userName)
+            status.value = "File upload & import successful!"
+        except Exception:
+            deleteDbEntry(self)
+            status.value = "Error: File could not be imported into database"
+            raise StopIteration
+                
             
     def deleteRecords(self):
         try:

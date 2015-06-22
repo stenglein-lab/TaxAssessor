@@ -59,6 +59,7 @@ class FileTemplate():
         self.delimiter = None
         self.userName  = None
         self.uniqueId  = None
+        self.readMinScore = {}
             
     def importData(self):
         warnings.warn("NOT YET IMPLEMENTED FOR THIS FILETYPE")
@@ -69,21 +70,47 @@ class BlastFile(InputFile,FileTemplate):
         self.fileBody  = InputFile.fileBody
         self.delimiter = InputFile.delimiter
         self.userName  = InputFile.userName
+        self.readMinScore = {}
+        self.readMinGis = {}
+        self.readMinCount = {}
         self.giToTax = None
     
     def importData(self):
         gis = set()
         taxIds = set()
+        taxCount = {}
         giToTax = {}
+        giCount = {}
+        readMinScore = {}
+        readMinGis = {}
+        readMinCount = {}
         
         for line in self.genLine():
             data = line.split(self.delimiter)
             gi = int(data[1].split("|")[1])
-            if gi not in gis: 
-                gis.add(gi)
-                
-        gis = "("+str(gis).lstrip("set([").rstrip("])")+")"
-        cmd = "SELECT gi,taxID from GiTax_NCBI WHERE gi in "+gis
+            readName = data[0]
+            eValue = data[-2]
+            
+            if ((readName not in readMinScore) or
+                    (eValue < readMinScore[readName])):
+                readMinScore[readName] = eValue
+                readMinGis[readName] = [gi]
+                readMinCount[readName] = 1
+            elif eValue == readMinScore[readName]:
+                readMinGis[readName].append(gi)
+                readMinCount[readName] += 1
+    
+        for readName in readMinGis:
+            gis = gis.union(readMinGis[readName])
+            contribution = 1.0/readMinCount[readName]
+            for gi in readMinGis[readName]:
+                if gi in giCount:
+                    giCount[gi] += contribution
+                else:
+                    giCount[gi] = contribution
+        
+        gistring = "("+str(gis).lstrip("set([").rstrip("])")+")"
+        cmd = "SELECT gi,taxID from GiTax_NCBI WHERE gi in "+gistring
         with TaxDb.openDbSS("TaxAssessor_Refs") as db, \
                                TaxDb.cursor(db) as cur:
             cur.execute(cmd)
@@ -91,11 +118,20 @@ class BlastFile(InputFile,FileTemplate):
                 gi = int(data[0])
                 taxId = int(data[1])
                 giToTax[gi] = taxId
-                if taxId not in taxIds: 
-                    taxIds.add(taxId)
+                
+        for gi in gis:
+            if gi in giToTax and giToTax[gi] != 0:
+                taxId = giToTax[gi]
+            else:
+                taxId = -1
+            if taxId not in taxIds:
+                taxIds.add(taxId)
+                taxCount[taxId] = giCount[gi]
+            else:
+                taxCount[taxId] += giCount[gi]
         
         self.giToTax = giToTax
-        return taxIds
+        return taxIds,taxCount
          
          
 def loadFile(fileName,fileBody,userName):
@@ -103,14 +139,15 @@ def loadFile(fileName,fileBody,userName):
     
     if inputFile.fileType == "BLAST":
         inputFile = BlastFile(inputFile)
-        taxIds = inputFile.importData()
-        taxTree = TaxTree.createTree(taxIds)
+        taxIds,taxCount = inputFile.importData()
+        taxTree = TaxTree.createTree(taxIds,taxCount)
         with open("uploads/"+userName+"/"+fileName+".json","w") as outFile:
             outFile.write(taxTree)
-        return True
+        return
     else:
         warnings.warn("UNKNOWN FILETYPE! DELETING")
-        return False
+        raise Exception
+        return
 
 
 

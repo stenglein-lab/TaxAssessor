@@ -33,3 +33,7 @@
   stroke: steelblue;
   stroke-width: 1px;
 }
+
+#eValSlider .slider-selection {
+	background: #BABABA;
+}
