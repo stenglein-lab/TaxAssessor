@@ -26,6 +26,8 @@ def main():
             (r'/docs/(.*)', tornado.web.StaticFileHandler, {'path':
                 '/home/jallison/TaxAssessor/website/uploads/'}),
             (r'/close',     handlers.Close),
+            (r'/inspect',   handlers.InspectReads),
+            (r'/(.+)',      handlers.ServeReports)
     ]
 
     options = { 'debug':            True,

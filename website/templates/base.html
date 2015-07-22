@@ -20,8 +20,19 @@
             <h1>TaxAssessor</h1>
         </div>
         <div class="col-lg-6 col-sm-6 bottom-right-align-text">
-            {% block login-info %}
+            <p>
+            {% if user ==None %}
+                Login for access - 
+                <a href="#loginModal" data-toggle="modal">
+                    Login
+                </a>
+            {% else %}
+                <div id="username" value={{userName}}>
+                    Welcome {{user}}! -
+                    <a href="/logout">Logout</a>
+                </div>
             {% end %}
+            </p>
         </div>
     </header>
     <nav class="navbar navbar-default">
@@ -41,8 +52,8 @@
                     {% end %}
                 </ul>
                 <ul class="nav navbar-nav navbar-right">
-                    <li><a href="#">About</a></li>
-                    <li><a href="#">Contact</a></li>
+                    <li><a href="/#about">About</a></li>
+                    <li><a href="/#contact">Contact</a></li>
                 </ul>
             </div>
         </div>
@@ -60,13 +71,90 @@
 
 </div> <!-- Close container -->
 
-
+{% if user != None %}
+    <div id="fileManagerModal" class="modal fade" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header-fileManager">
+                    <button type="button" class="close glyphicon glyphicon-remove" style="color:#000" data-dismiss="modal"></button>
+                    <h3 class="modal-title">File Manager</h3>
+                </div>
+                <div class="modal-body">
+                    <form enctype="multipart/form-data" action="/manage" method="post" id="manage_form" class="form-manage">
+                        {% raw xsrf_form_html() %}
+                        <div class="table-responsive fileTable">
+                            <table class="table" id="fileManageTable">
+                            <thead>
+                                <tr>
+                                    <th width="5%" data-field="id" data-align="right"></th>
+                                    <th data-field="id" data-align="right">File Name</th>
+                                    <th data-field="date" data-align="center">Date Created</th>
+                                    <th data-field="status" data-align="left">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr id=hidden style="display:none;">
+                                    <td><input type="radio" name="fileName" value="hidden"></td>
+                                    <td>hidden</td>
+                                    <td>None</td>  
+                                    <td id="progress-finished">None</td>
+                                </tr>
+                                {% for fileName in fileListing %}
+                                <tr id={{fileName}}>
+                                    <td><input type="radio" name="fileName" value="{{fileName}}"></td>
+                                    <td>{{fileName}}</td>
+                                    <td>None</td>  
+                                    <td id="progress-finished">None</td>
+                                </tr>
+                                {% end %}
+                              </tbody>
+                            </table>
+                        </div>
+                        <p>
+                            <div class="btn-group btn-group-justified" role="group">
+                                <div class="btn-group" role="group">
+                                    <button class="btn btn-primary" type="submit" name="open">Open</button>
+                                </div>
+                                <div class="btn-group" role="group">
+                                    <button class="btn btn-primary" type="submit" name="update">Update Status</button>
+                                </div>
+                                <div class="btn-group" role="group">
+                                    <button class="btn btn-danger" type="submit" name="delete">Delete</button> 
+                                </div>
+                            </div>
+                            <br>
+                            <div class="input-group">
+                                <span class="input-group-btn">
+                                    <span class="btn btn-primary btn-file">
+                                        Browse&hellip; <input type="file" name="upFile" id="upload_file" />
+                                    </span>
+                                </span>
+                                <input type="text" class="form-control" readonly>
+                                <span class="input-group-btn">
+                                    <button id="upload_button" class="btn btn-primary" type="submit" name="upload">
+                                        Upload
+                                    </button>
+                                </span>
+                            </div>
+                        </p>
+                        <input type="file" name="upFile" id="upload_file" style="display: none;"/>
+                    </form>
+                    <div class="errorMessage" id="managerErrorMessage" style="display:none">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% end %}
 {% block modals %}
 {% end %}
 
 
 <script src="{{ static_url('js/jquery-1.11.2.min.js') }}"></script>
 <script src="{{ static_url('js/bootstrap.min.js') }}"></script>
+{% if user != None %}
+    <script src="{{ static_url('js/file_manager.js') }}"></script>
+{% end %}
 {% block scripts %}
 {% end %}
 

@@ -12,7 +12,7 @@ import time
 import TaxPy.inputFile_management.load_file as TaxLoad
 import TaxPy.inputFile_management.align_file_manager as TaxFileManager
 import TaxPy.db_management.db_wrap as TaxDb
-
+import TaxPy.data_processing.inspect_reads as TaxReads
 
 from multiprocessing.pool import ThreadPool
 from contextlib import closing
@@ -95,6 +95,16 @@ class BaseHandler(tornado.web.RequestHandler):
             fileName = cur.fetchone()[0]
             return fileName
 
+    @tornado.web.authenticated
+    def get_current_fileName_tableName(self,userName,fileName):
+        with TaxDb.openDb("TaxAssessor_Users") as db, TaxDb.cursor(db) as cur:
+            cmd = """SELECT uniqueId FROM files WHERE username=%s and
+                                                         filename=%s;"""
+            cur.execute(cmd,(userName,fileName))
+            fileId = cur.fetchone()[0]
+            return fileId
+
+
 
 class Index(BaseHandler):
     """
@@ -111,7 +121,7 @@ class Index(BaseHandler):
             openFile = None
             userName = None
         self.render("index.html",user=firstName,fileListing=fileListing,
-                    openFile=openFile,username=userName)
+                    openFile=openFile,userName=userName)
 
 class Login(BaseHandler):
     """
@@ -285,7 +295,7 @@ class Open(BaseHandler):
             cmd = "UPDATE users SET currentFile=%s WHERE username=%s;"
             cur.execute(cmd,(fileName,userName))
             db.commit()
-        self.redirect("/")
+        self.redirect("/report")
 
 class Close(BaseHandler):
     @tornado.web.authenticated
@@ -350,8 +360,37 @@ class ServeFile(tornado.web.StaticFileHandler):
         except Exception:
             return None
 
+class InspectReads(BaseHandler):
+    def post(self):
+        taxId = self.get_argument("taxId")
+        taxName = self.get_argument("taxName")
+        
+        userName = self.get_current_username()
+        fileName = self.get_current_fileName(userName)
+        fileId   = self.get_current_fileName_tableName(userName,fileName)
+        fileId   = "t"+str(fileId)
+        
+        readLines,status = TaxReads.retrieveReads(userName,fileName,fileId,taxId)
 
+        alignInfo = {"name":taxName,"taxId":taxId,"status":status,
+                     "info":readLines}
+        self.write(json.dumps(alignInfo))
 
-
+class ServeReports(BaseHandler):
+    @tornado.web.authenticated
+    def get(self,path):
+        try:
+            userName = self.get_current_username()
+            currentFile = self.get_current_fileName(userName)
+            if currentFile:
+                self.render(path+".html",
+                            userName    = userName,
+                            user        = self.get_current_firstName(),
+                            fileListing = self.get_current_fileListing(userName),
+                            openFile    = self.get_current_fileName(userName))
+            else:
+                self.redirect("/")
+        except IOError:
+            self.write("Page not found")
 
 

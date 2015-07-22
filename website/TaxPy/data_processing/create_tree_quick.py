@@ -75,6 +75,7 @@ class TaxTree():
      
     def stitchNodes(self,nodeName):
         tempTree = OrderedDict({"name":self.names[nodeName],
+                                "taxId":nodeName,
                                 "size":self.taxCount[nodeName]})
         if nodeName in self.children:
             children = self.children[nodeName]
@@ -91,7 +92,7 @@ def createTree(taxIds,taxCount):
     taxTree.getTaxIdNames()
     taxTree.fillCounts()
     fullTree = taxTree.stitchNodes(1)    
-    fullTree = json.dumps(fullTree,sort_keys=False,indent=4)
+    fullTree = json.dumps(fullTree,sort_keys=False)
     
     end = time.time()
     print (end-start),"seconds building tree"

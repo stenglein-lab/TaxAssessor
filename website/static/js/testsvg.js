@@ -21,8 +21,8 @@ var y = d3.scale.linear()
     .range([height, 0]);
 
 var svg = d3.select("#chart")
-            .append("div")
-            .classed("svg-container",true)
+            //.append("div")
+            //.classed("svg-container",true)
             .append("svg")
             .attr("preserveAspectRatio","xMinYMin meet")
             .attr("viewBox","0 0 "+width+" "+height)
@@ -33,6 +33,17 @@ var svg = d3.select("#chart")
             .call(d3.behavior.zoom().scaleExtent([1, 8]).on("zoom", zoom))
             .append("g")
 
+var aspect = width/height,
+    chart = $('#svg-content-responsive');
+    
+$(window).on("resize", function() {
+    var targetWidth = chart.parent().width();
+    chart.attr("width", targetWidth);
+    chart.attr("height", targetWidth / aspect);
+}); 
+
+            
+            
 function zoom() {
     svg.attr("transform","translate(" + d3.event.translate + ")scale(" + d3.event.scale + ")");
 }

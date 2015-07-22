@@ -2,24 +2,6 @@
 
     {% block head %}
         <link href="{{ static_url("css/index.css") }}" rel="stylesheet">
-        <link href="{{ static_url("css/testsvg.css") }}" rel="stylesheet">
-        <link href="{{ static_url("css/slider.css") }}" rel="stylesheet">
-    {% end %}
-
-    {% block login-info %}
-        <p>
-        {% if user ==None %}
-            Login for access - 
-            <a href="#loginModal" data-toggle="modal">
-                Login
-            </a>
-        {% else %}
-            <div id="username" value={{username}}>
-                Welcome {{user}}! -
-                <a href="/logout">Logout</a>
-            </div>
-        {% end %}
-        </p>
     {% end %}
 
     {% block navbar %}
@@ -28,32 +10,13 @@
             <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false">File <span class="caret"></span></a>
             <ul class="dropdown-menu" role="menu">
                 <li><a href="#fileManagerModal" data-toggle="modal">File Manager</a></li>
-                {% if openFile != None %}
-                    <li><a href="/close">Close File</a></li>
-                {% end %}
                 <li class="divider"></li>
                 <li><a href="/logout" data-toggle="modal">Logout</a></li>
             </ul>
         </li>
-        {% if openFile != None %}
-        <li class="dropdown">
-            <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false">Statistics <span class="caret"></span></a>
-            <ul class="dropdown-menu" role="menu">
-                <li><a href="#">Reads</a></li>
-                <li><a href="#">Alignment</a></li>
-                <li><a href="#">Taxonomy</a></li>
-            </ul>
-        </li>
-        <li class="dropdown">
-            <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false">Data Visualization<span class="caret"></span></a>
-            <ul class="dropdown-menu" role="menu">
-                <li><a href="#">Tree</a></li>
-                <li><a href="#">Sunburst</a></li>
-                <li><a href="#">Block</a></li>
-            </ul>
-        </li>
-        <li><a href="#" id="vis_options">Visualization Options</a></li>
-        {% end %}
+            {% if openFile != None %}
+                <li><a href="/report">Return to Open File</a></li>
+            {% end %}
         {% else %}
         <li class="dropdown">
             <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false">File <span class="caret"></span></a>
@@ -68,38 +31,23 @@
     {% block body %}
         <div class="row">
             <div class="col-lg-12 col-md-12">
-                {% if openFile != None %}
-                    <h4 id="openFile" value="{{openFile}}">{{openFile}}
-                    <a type="button" class="close glyphicon glyphicon-remove" style="color:#000" href="/close"></a>
-                    </h4>
-                {% end %}
-            </div>
-        </div>
-        <div class="row">
-            <div class="col-lg-12 col-md-12" id="chart">
-            </div>
-            <div class="col-lg-2 col-md-2 col-lg-pull-10 col-md-pull-10" id="vis_options_sidebar" style="display: none;">
-                <div class="well">
-                    <h5>Node Scale</h5>
-                    <div class="radio">
-                        <label>
-                            <input type="radio" name="circleScaleRadios" id="circleLogRadius" value="log" checked>Log
-                        </label>
-                    </div>
-                    <div class="radio">
-                        <label>
-                            <input type="radio" name="circleScaleRadios" id="circleLinearRadius" value="linear">Linear
-                        </label>
-                    </div>
-                    <hr>
-                    <h5 style="color: red;">e-Value Filter (NYI)</h5>
-                    <form>
-                        <div class="form-group">
-                            <input type="text" class="form-control" id="eValCutoff" placeholder="ex: 1e-5">
-                        </div>
-                        <button type="submit" class="btn btn-primary">Apply Filters</button>
-                    </form>
-                </div>
+                <div id="about"><h3>About</h3></div><br>
+                TaxAssessor is a <a href="http://www.d3js.org">d3js</a>-based metagenomic visualization suite created by the <a href="http://www.stengleinlab.org/">Stenglein lab</a> at <a href="http://www.colostate.edu">Colorado State University</a>.  It is available as a standalone application deployable to your local server.  It has the added functionality of being 100% scriptable so as to tie in with your metagenomic analysis pipelines.<br>
+                    TaxAssessor strives to be modern browser agnostic.  As such, if you discover any issues with your browser, please let us know and we will address the issue.
+                <hr>
+                <h3>Source</h3><br>
+                TaxAssessor is freely available under the MIT license.
+                <ul><li><a href="https://github.com/stenglein-lab/TaxAssessor">Github Repository</a></li></ul>
+                <hr>
+                <h3>Try It!</h3><br>
+                <hr>
+                <div id="contact"><h3>Contact Us</h3></div><br>
+                <ul>
+                    <li><a href="http://www.stengleinlab.org/">The Stenglein Lab</a></li>
+                    <li>Dr. Mark Stenglein (Assistant Professor)</li>
+                    <li>Dr. Joseph Allison (Post-doc)</li>
+                </ul>
+                <hr>                
             </div>
         </div>
 
@@ -178,90 +126,5 @@
                 </div>
             </div>
         </div>
-
-        {% else %}
-        
-        <div id="fileManagerModal" class="modal fade" tabindex="-1">
-            <div class="modal-dialog">
-                <div class="modal-content">
-                    <div class="modal-header-fileManager">
-                        <button type="button" class="close glyphicon glyphicon-remove" style="color:#000" data-dismiss="modal"></button>
-                        <h3 class="modal-title">File Manager</h3>
-                    </div>
-                    <div class="modal-body">
-                        <form enctype="multipart/form-data" action="/manage" method="post" id="manage_form" class="form-manage">
-                            {% raw xsrf_form_html() %}
-                            <div class="table-responsive fileTable">
-                                <table class="table" id="fileManageTable">
-                                <thead>
-                                    <tr>
-                                        <th width="5%" data-field="id" data-align="right"></th>
-                                        <th data-field="id" data-align="right">File Name</th>
-                                        <th data-field="name" data-align="center">Date Created</th>
-                                        <th data-field="price" data-align="left">Status</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr id=hidden style="display:none;">
-                                        <td><input type="radio" name="fileName" value="hidden"></td>
-                                        <td>hidden</td>
-                                        <td>None</td>  
-                                        <td id="progress-finished">None</td>
-                                    </tr>
-                                    {% for fileName in fileListing %}
-                                    <tr id={{fileName}}>
-                                        <td><input type="radio" name="fileName" value="{{fileName}}"></td>
-                                        <td>{{fileName}}</td>
-                                        <td>None</td>  
-                                        <td id="progress-finished">None</td>
-                                    </tr>
-                                    {% end %}
-                                  </tbody>
-                                </table>
-                            </div>
-                            <p>
-                                <div class="btn-group btn-group-justified" role="group">
-                                    <div class="btn-group" role="group">
-                                        <button class="btn btn-primary" type="submit" name="open">Open</button>
-                                    </div>
-                                    <div class="btn-group" role="group">
-                                        <button class="btn btn-primary" type="submit" name="update">Update Status</button>
-                                    </div>
-                                    <div class="btn-group" role="group">
-                                        <button class="btn btn-danger" type="submit" name="delete">Delete</button> 
-                                    </div>
-                                </div>
-                                <br>
-                                <div class="input-group">
-                                    <span class="input-group-btn">
-                                        <span class="btn btn-primary btn-file">
-                                            Browse&hellip; <input type="file" name="upFile" id="upload_file" />
-                                        </span>
-                                    </span>
-                                    <input type="text" class="form-control" readonly>
-                                    <span class="input-group-btn">
-                                        <button id="upload_button" class="btn btn-primary" type="submit" name="upload">
-                                            Upload
-                                        </button>
-                                    </span>
-                                </div>
-                            </p>
-                            <input type="file" name="upFile" id="upload_file" style="display: none;"/>
-                        </form>
-                        <div class="errorMessage" id="managerErrorMessage" style="display:none">
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
         {% end %}
-    {% end %}
-
-    {% block scripts %}
-        {% if openFile != None %}
-            <script src="{{ static_url('js/TreeSVG.js') }}"></script>
-        {% end %}
-        <script src="{{ static_url('js/bootstrap-slider.js') }}"></script>
-        <script src="{{ static_url('js/checkform_index.js') }}"></script>
     {% end %}
