@@ -1,0 +1,50 @@
+.table > tbody > tr.active > td {
+    background-color: #85A3C2;
+}
+
+.progress {
+    height: 30px;
+}
+
+.progress-bar {
+    overflow:hidden;
+    white-space:nowrap;
+    line-height:30px;
+}
+
+#fileName_search {
+    margin-top: 3px;
+}
+
+.removeList {
+  margin-top: -2px;
+}
+
+.panel-heading a:after {
+    font-family:'Glyphicons Halflings';
+    content:"\e114";
+    float: right;
+    color: grey;
+}
+.panel-heading a.collapsed:after {
+    content:"\e080";
+}
+
+.set-status-text {
+    margin-top: 5px;
+    margin-left: 10px;
+    margin-bottom: 0px;
+}
+
+textarea.form-control {
+    resize: vertical;
+    height: 150px;
+}
+
+.setTable1 {
+    height: 100px;
+}
+
+.btn-compare {
+    margin-top: 3px;
+}

@@ -1,131 +1,522 @@
-$(document).on('change', '.btn-file :file', function() {
-    var input = $(this),
-        numFiles = input.get(0).files ? input.get(0).files.length : 1,
-        label = input.val().replace(/\\/g, '/').replace(/.*\//, '');
-    input.trigger('fileselect', [numFiles, label]);
-});
+//////////FILEMANAGER 2.0//////////
+//   CREATED BY JOSEPH ALLISON   //
+///////////////////////////////////
 
-$(document).ready( function() {
-    $('.btn-file :file').on('fileselect', function(event, numFiles, label) {
-        
-        var input = $(this).parents('.input-group').find(':text'),
-            log = numFiles > 1 ? numFiles + ' files selected' : label;
-        
-        if( input.length ) {
-            input.val(log);
+//
+// TAB SWITCHING
+//
+var currentTab = "open"
+$('#manageTabs a[href="#Open"]').click(function (e) {
+    currentTab = "open";
+    e.preventDefault();
+    $(this).tab('show');
+    var buttonHtml = "<td><a type='button' class='close glyphicon glyphicon-open openFileButton' style='color:#000050'></td>";
+    changeFileButtons(buttonHtml);
+
+    $(".openFileButton").on("click", function(e) {
+        var fileName = $(this).parent().parent().children()[1].innerHTML;
+        $("#open_file").val(fileName);
+        var formData = new FormData($("#open_form")[0]);
+        $("#open_form").noValidate = true;
+        $.ajax({
+            url:"/open",
+            type:"POST",
+            data:formData,
+            contentType:false,
+            processData:false,
+            cache:false,
+            success:function(resp){
+                location.replace("http://stengleinlab101.cvmbs.colostate.edu:2222/report")
+            },
+            error:function(resp){
+                console.log(resp);
+            },
+            xhr:function(){
+                myXhr = $.ajaxSettings.xhr();
+                return myXhr;
+            }
+        });
+    })
+})
+
+$('#manageTabs a[href!="#Open"]').click(function (e) {
+    $('.openFileButton').unbind("click");
+})
+
+var selectedSet = null;
+$('#manageTabs a[href="#Compare"]').click(function (e) {
+    currentTab = "compare";
+    e.preventDefault();
+    $(this).tab('show');
+    $("#compare_sets_button_container").show();
+    
+    //Remove the buttons
+    changeFileButtons(""); 
+    
+    var container1 = new SetListContainer("set1","panel-info","btn-primary","Set 1","info"),
+        container2 = new SetListContainer("set2","panel-success","btn-success","Set 2","success");
+    
+    $('.selectableFiles').click( function() {
+        //if it already belongs to a set
+        if ($(this).hasClass("info") || $(this).hasClass("success")) {
+            $(this).removeClass("info").removeClass("success");
+            var fileName = $(this).children()[1].innerHTML,
+                fileRow = $(document.getElementById(fileName+"_selected"));
+                
+            fileRow.detach()
+            
+            container1.updateListStatus();
+            container2.updateListStatus();
+            container1.resetSetTitle();
+            container2.resetSetTitle();            
+            
+        //if it does not belong to a set
         } else {
-            if( log ) alert(log);
+            var container;
+            if (selectedSet == "set1") {
+                container = container1;
+            } else if (selectedSet == "set2"){
+                container = container2;
+            }
+            if (container) {
+                container.addItemToList($(this));
+                container.updateListStatus(); 
+                container.resetSetTitle();
+            }
         }
     });
-});
+    $('.set_clear').click( function() {
+        var container;
+        if ($(this).attr("id") == "set1_clear") {
+            container = container1;
+        } else {
+            container = container2
+        }
+        container.removeAllItemsFromList();
+        container.resetSetTitle();
+        container.updateListStatus();
+    });
+    $('.set_save').click( function(e) {
+        if ($(this).attr("id") == "set1_save") {
+            container1.saveItemsInList();
+        } else {
+            container2.saveItemsInList();
+        }
+    });
+    $('.set_container').click( function() {
+        if ($(this).attr("id") == "set1") {
+            selectedSet = "set1";
+            container1.makePanelActive();
+            container2.makePanelInactive();
+        } else {
+            selectedSet = "set2";
+            container2.makePanelActive();
+            container1.makePanelInactive();
+        }
+    })
+    $('#saveSetButton').click( function(e) {
+        e.preventDefault();
+        var setNameElement = $("#setName"),
+            setName = setNameElement.val().trim();
+            
+        if (!checkIfSetNameValid(setName,setNameElement)) {return}
 
-var file_selected = false;
-$("input[name='upFile']").change(function() {
-    file_selected=true;
-});
+        var formData = new FormData($('#save_set_form')[0])
+        $.ajax({
+            url:"/saveSet",
+            type:"POST",
+            data:formData,
+            contentType:false,
+            processData:false,
+            cache:false,
+            success:function(resp){
+                $('#save_set').modal('hide');
+                if (selectedSet == "set1") {
+                    container1.title.html(setName);
+                } else {
+                    container2.title.html(setName);
+                }
+                $('#setTableBody').append('<tr name='+setName+' class="selectableSets"><td><a type="button" class="close glyphicon glyphicon-open loadSetButton" style="color:#000050" name="loadSet"></a></td><td>'+setName+'</td></tr>');
+                $('.selectableSets').unbind();
+                $('.loadSetButton').unbind();
+                $('.selectableSets').one("mouseenter",populateSetMouseOver);
+                $('.selectableSets').mouseout(function () {$(this).popover("hide");});
+                $('.loadSetButton').click({container1:container1,container2:container2},
+                           loadFileNamesIntoContainer);
+            },
+            error:function(resp){
+                console.log("error");
+                console.log(resp);
+            }
+        });
+    });
+    $('.selectableSets').one("mouseenter",populateSetMouseOver);
+    $('.selectableSets').mouseleave(function () {$(this).popover("hide");});
+    $('.loadSetButton').click({container1:container1,container2:container2},
+                               loadFileNamesIntoContainer);
+    $('#compare_sets_button_container').click({container1:container1,container2:container2},
+                                               submitSetsForComparison);
+})
 
-var newRow = null;
-
-function addManagerOption(fileName) {
-    fileName = fileName.replace(/\.[^/.]+$/, "")
-    var table = document.getElementById('fileManageTable');
-    newRow = table.rows[1].cloneNode(true);
-    newRow.id = fileName;
-    newRow.removeAttribute("style");
-    newRow.cells[0].children[0].value = fileName;
-    newRow.cells[1].innerHTML = fileName;
-    newRow.cells[3].setAttribute("id","progress-uploading");
-    var tableRef = table.getElementsByTagName('tbody')[0];
-    tableRef.appendChild(newRow);
-}
-
-function removeManagerOption() {
-    var table = document.getElementById('fileManageTable');
-    var count = table.rows.length;
-    table.removeChild(table[count-1]);
-}
-
-function deleteFile(formData,fileName) {
+function populateSetMouseOver() {
+    var listName = $(this).children()[1].innerHTML;
+    $('#getSetName').val(listName);
+    var formData = new FormData($('#getSetForm')[0]);
+    var button = $(this);
     $.ajax({
-        url:"/delete",
+        url:"/getSet",
         type:"POST",
         data:formData,
         contentType:false,
         processData:false,
         cache:false,
-        success:function(resp){
-            $('div#status').html(resp);
-            var row = document.getElementById(fileName);
-            row.parentNode.removeChild(row)
-            showStatusMessage("File Successfully Deleted","managerErrorMessage");
+        success: function(resp) {
+            button.popover({title: listName, content: resp}).popover("show");
+            button.mouseenter(function () {button.popover({title: listName, content: resp}).popover("show");})
         },
-        error:function(resp){
-            $('div#status').html(resp);
-            showStatusMessage("Error Deleting File<br>Please reload this page","managerErrorMessage");
-        },
-        xhr:function(){
-            myXhr = $.ajaxSettings.xhr();
-            return myXhr;
+        error: function(resp) {
+            popoverContent = "ERROR";
         }
-    });
-    $('div#status').html('File is being uploaded...');
-    return false;
+    });  
 }
 
-function uploadFile(formData,fileName) {
+function loadFileNamesIntoContainer(event) {
+    var container1 = event.data.container1,
+        container2 = event.data.container2;
+    var listName = $(this).parent().parent().children()[1].innerHTML;
+    $('#getSetName').val(listName);
+    var formData = new FormData($('#getSetForm')[0]);
     $.ajax({
-        url:"/upload",
+        url:"/getSet",
         type:"POST",
         data:formData,
         contentType:false,
         processData:false,
         cache:false,
-        success:function(resp){
-            console.log("success");
-            $('#upload_button').prop('disabled', false);
-            $('div#status').html(resp);
-            console.log(resp);
-            if (resp.indexOf("Error") > -1) {
-                console.log("Error'd");
-                newRow.setAttribute("class","danger");
-                newRow.cells[0].children[0].disabled=true;
-                newRow.cells[3].innerHTML = "ERROR";
+        success: function(resp) {
+            var fileNames = resp.split("\n");
+            var container;
+            if (selectedSet == "set1") {
+                containerTo   = container1;
+                containerFrom = container2;
             } else {
-                newRow.cells[3].innerHTML = "Ready";
+                containerTo   = container2;
+                containerFrom = container1;
             }
-            showStatusMessage(resp,"managerErrorMessage");
-        },
-        error:function(resp){
-            $('#upload_button').prop('disabled', false);
-            $('div#status').html(resp);
-            showStatusMessage("ERROR UPLOADING FILE","managerErrorMessage");
-            newRow.cells[3].innerHTML = "Error";
-            removeManagerOption()
-        },
-        xhr:function(){
-            newRow.cells[3].setAttribute("id","progress-processing");
-            $('#upload_button').prop('disabled', true);
-            myXhr = $.ajaxSettings.xhr();
-            if(myXhr.upload){
-                myXhr.upload.addEventListener('progress',function(evnt){
-                    if(evnt.lengthComputable){
-                        var ratio = (evnt.loaded / evnt.total) * 100;
-                        if (Math.ceil(ratio) == 100) {
-                            newRow.cells[3].innerHTML = "Processing";
-                        } else {
-                            newRow.cells[3].innerHTML = Math.floor(ratio)+"%";
-                        }
-                    }
-                },false);
+            containerTo.removeAllItemsFromList();
+            containerTo.setSetTitle(listName);
+            var startLength = containerFrom.list.children().length
+            var missingFileNames = ""
+            for (var i=0;i< fileNames.length-1; i++) {
+                containerFrom.removeItemFromList(fileNames[i]);
+                fileListRow = document.getElementById(fileNames[i]);
+                if (fileListRow !== null) {
+                    containerTo.addItemToList($(fileListRow));                
+                } else {
+                    missingFileNames += "<br>"+fileNames[i];
+                }
             }
-            return myXhr;
+            if (missingFileNames.length > 0) {
+                console.log('here');
+                containerTo.removeAllItemsFromList();
+                containerTo.resetSetTitle();
+                var errorMessage = "<div class='alert alert-danger alert-block'><strong>-Missing Files-</strong>"+missingFileNames+"</div>"
+                $("#loadErrorFooter").html(errorMessage);
+                $("#loadErrorFooter").show();
+                console.log(errorMessage);
+            };
+            if (startLength != containerFrom.list.children().length) {containerFrom.resetSetTitle()};
+            container1.updateListStatus();
+            container2.updateListStatus();
+            
+        },
+        error: function(resp) {
+            popoverContent = "ERROR";
         }
-    });
-    $('div#status').html('File is being uploaded...');
-    return false;
+    }); 
 }
 
-function openFile(formData,fileName) {
+function SetListContainer(containerId,activePanelClass,activeButtonClass,defaultTitle,selectedRowClass) {
+    this.container = $("#"+containerId);
+    this.buttons   = $("."+containerId+"_buttons");
+    this.list      = $("#"+containerId+"_list");
+    this.status    = $("#"+containerId+"_status");
+    this.title     = $("#"+containerId+"_title");
+    
+    //Panel Toggling
+    this.makePanelActive = function() {
+        this.container.addClass(activePanelClass).removeClass("panel-default");
+        this.buttons.each( function () {
+            $(this).addClass(activeButtonClass).removeClass("btn-default");
+        });        
+    }
+    this.makePanelInactive = function() {
+        this.container.removeClass(activePanelClass).addClass("panel-default");
+        this.buttons.each( function () {
+            $(this).removeClass(activeButtonClass).addClass("btn-default");
+        });       
+    }
+    //Panel Information
+    this.updateListStatus = function() {
+        var nList = this.list.children().length;
+        if (nList == 0) {
+            this.status.html("");
+        } else {
+            this.status.html(nList+" files selected");
+        }
+    }
+    this.resetSetTitle = function() {
+        this.title.html(defaultTitle);
+    }
+    this.setSetTitle = function(title) {
+        this.title.html(title);
+    }
+    //List Management
+    this.addItemToList = function(fileManagerRow) {
+        fileManagerRow.addClass(selectedRowClass);
+        var fileName = fileManagerRow.attr("name");
+        var newPanelRow = $("<a class='list-group-item set-items' id='"+fileName+"_selected'>"+fileName+"</a>");
+        this.list.append(newPanelRow);
+        var removeRowEvent = (function (event) {
+            event.data.panelRow.remove();
+            event.data.fileManagerRow.removeClass(selectedRowClass);
+            this.updateListStatus();
+            this.resetSetTitle();
+        }).bind(this)
+        newPanelRow.click( {panelRow: newPanelRow, fileManagerRow: fileManagerRow}, removeRowEvent );
+    }
+    this.removeItemFromList = function(fileName) {
+        var row = $(document.getElementById(fileName+"_selected"));
+        row.remove();
+        var fileManagerRow = $(document.getElementById(fileName));
+        fileManagerRow.removeClass(selectedRowClass);
+    }
+    this.removeAllItemsFromList = function() {
+        this.list.empty();
+        $('#tableBody').children().each( function() {
+                $(this).removeClass(selectedRowClass);
+        });
+    }
+    this.saveItemsInList = function() {
+        $('#setFiles').html("");
+        this.list.children().each( function() {
+            $('#setFiles').html($('#setFiles').html()+this.innerHTML+"\n");
+        })    
+        if ($('#setFiles').is(':empty')) {
+            this.status.html("Please select files");
+        } else {
+            $("#save_set").modal("show");
+        }    
+    }
+    //List Output
+    this.exportList = function() {
+        var setList = new Array();
+        this.list.children().each( function() {
+            setList.push($(this).html());
+        })
+        return setList;
+    }
+    
+    
+}
+
+function checkIfSetNameValid(setName,setNameElement) {
+    var valid = true;
+    if (setName == "") {
+        setNameElement.css("background-color","#FFEECC");
+        valid = false;
+    }
+    if (!valid) {return valid}
+    $('#setTableBody').children().each( function () {
+        if (setName == $(this).children()[1].innerHTML) {
+            setNameElement.css("background-color","#FFEECC");
+            setNameElement.popover({content: "Set name already exists!",placement:"top"}).popover("show");
+            return valid = false;                
+        }
+        return valid;
+    });
+    return valid;
+}
+
+function submitSetsForComparison(event) {
+    var container1 = event.data.container1,
+        container2 = event.data.container2;
+    if (container1.list.children().length == 0 || container2.list.children().length == 0) {
+        $("#compare_sets_button_container").popover({content: "Each set must have at least one file",placement:"top"}).popover("show");
+        setTimeout(function() {
+            $("#compare_sets_button_container").popover("destroy");
+        }, 2000);
+    } else {
+        var setLists = {"set1":container1.exportList(),
+                        "set2":container2.exportList()}
+        $('#set_files_input').val(JSON.stringify(setLists));
+        var formData = new FormData($('#compare_form')[0]);
+        $("#compare_sets_submit").prop("disabled",true)
+        $.ajax({
+            url:"/compare",
+            type:"POST",
+            data:formData,
+            contentType:false,
+            processData:false,
+            cache:false,
+            success: function(resp) {
+                console.log(resp.indexOf("Error"));
+                if (resp.indexOf("Error") > -1) {
+                    console.log("Error: "+resp);
+                } else {
+                    console.log("Success: "+resp);
+                }
+                $("#compare_sets_submit").prop("disabled",false)
+            },
+            error: function(resp) {
+                console.log("ERROR: "+resp);
+                $("#compare_sets_submit").prop("disabled",false)
+            },
+            xhr:function(){
+                myXhr = $.ajaxSettings.xhr();
+                return myXhr;
+            }
+        });  
+    }
+}
+
+$('#manageTabs a[href!="#Compare"]').click(function (e) {
+    $('#tableBody').unbind("click");
+    $('.selectableFiles').unbind();
+    $('.set_clear').unbind();
+    $('.set_save').unbind();
+    $('.set_container').unbind();
+    $('.selectableSets').unbind();
+    $('.loadSetButton').unbind();
+    $("#compare_sets_button_container").unbind();
+    $("#compare_sets_button_container").hide();
+})
+
+$('#manageTabs a[href="#Upload"]').click(function (e) {
+    currentTab = "upload";
+    e.preventDefault();
+    $(this).tab('show');
+    changeFileButtons("");
+    $('#upload_button').click( function (event) {
+        event.preventDefault();
+        if (!file_selected) { 
+            $('#upload_name').val("Please select file");
+            return;
+        }
+        var formData = new FormData($('#upload_form')[0]),
+            fileName = $('#upload_name').val(),        
+            currentBarContainer = $("<div class='progress'></div>"),
+            bar = $("<div class='progress-bar' role='progressbar' aria-valuenow='0' aria-valuemin='0' aria-valuemax='100' style='width: 0%;'>0%</div>");
+        $.ajax({
+            url:"/upload",
+            type:"POST",
+            data:formData,
+            contentType:false,
+            processData:false,
+            cache:false,
+            success:function(resp){
+                resp = JSON.parse(resp);
+                for (var fileName in resp) {
+                    var status = resp[fileName];
+                    if (status.indexOf("SUCCESS") > -1) {
+                        addTableRow(fileName)
+                    } else {
+                        uploadError(fileName,status);
+                    }
+                }
+                setTimeout( function () {
+                        currentBarContainer.fadeOut();
+                    }, 3000);
+            },
+            error:function(resp){
+                console.log("error");
+                console.log(resp);
+            },
+            xhr:function(){
+                $('#bar_container').append(currentBarContainer);
+                currentBarContainer.append(bar);
+                myXhr = $.ajaxSettings.xhr();
+                var currentFile = fileName;
+                if(myXhr.upload){
+                    myXhr.upload.addEventListener('progress',function(evnt){
+                        if(evnt.lengthComputable){
+                            var ratio = (evnt.loaded / evnt.total) * 100;
+                            if (Math.ceil(ratio) == 100) {
+                                bar.html(fileName+": "+"Upload Finished, Processing Files");
+                                bar.width("100%");
+                                myXhr.upload.removeEventListener('progress');
+                            } else {
+                                bar.html(fileName+": "+Math.floor(ratio)+"%");
+                                bar.width(Math.floor(ratio)+"%");
+                            }
+                        }
+                    },false);
+                }
+                return myXhr;
+            } 
+        })
+    });
+    function uploadError(fileName,error) {
+        var errorMessage = "<div class='alert alert-danger alert-dismissible'><button type='button' class='close' data-dismiss='alert' aria-label='Close'><span aria-hidden='true'>&times;</span></button><strong>Error Uploading File: "+fileName+"</strong><br>"+error+"</div>";
+        $("#uploadErrorMessage").append(errorMessage);
+    }
+    $('#upload_options_dropdown').bind('click', function (e) { e.stopPropagation() })
+})
+
+$('#manageTabs a[href!="#Upload"]').click(function (e) {
+    $('#upload_button').unbind("click");
+})
+
+$('#manageTabs a[href="#Delete"]').click(function (e) {
+    currentTab = "delete";
+    e.preventDefault();
+    $(this).tab('show');
+    var buttonHtml = "<td><a type='button' class='close glyphicon glyphicon-remove deleteFileButton' style='color:#990000' name='deleteFile'></td>"
+    changeFileButtons(buttonHtml);
+    $(".deleteFileButton").click( function(e) {
+        e.preventDefault();
+        var row = $(this).parent().parent()
+        var fileName = row.children()[1].innerHTML;
+        $("#delete_file").val(fileName);
+        var formData = new FormData($("#delete_form")[0]);
+        $("#delete_form").noValidate = true;
+        $.ajax({
+            rowInfo: row,
+            url:"/delete",
+            type:"POST",
+            data:formData, 
+            contentType:false,
+            processData:false,
+            cache:false,
+            success:function(resp){
+                row.remove();
+            },
+            error:function(resp){
+
+            },
+            xhr:function(){
+                myXhr = $.ajaxSettings.xhr();
+                return myXhr;
+            }
+        });
+    })
+})
+
+function changeFileButtons(buttonHtml) {
+    var rows = $('.selectableFiles');
+    for (var i=0;i<rows.length;i++) {
+        rows[i].cells[0].innerHTML = buttonHtml;
+    }
+}
+
+//
+// SUBMITING FORMS (OPEN,UPLOAD, & DELETE)
+//
+$(".openFileButton").click( function(e) {
+    var fileName = $(this).parent().parent().children()[1].innerHTML;
+    $("#open_file").val(fileName);
+    var formData = new FormData($("#open_form")[0]);
+    $("#open_form").noValidate = true;
     $.ajax({
         url:"/open",
         type:"POST",
@@ -134,84 +525,123 @@ function openFile(formData,fileName) {
         processData:false,
         cache:false,
         success:function(resp){
-            $('div#status').html(resp);
             location.replace("http://stengleinlab101.cvmbs.colostate.edu:2222/report")
         },
         error:function(resp){
-            $('div#status').html(resp);
+            console.log(resp);
         },
         xhr:function(){
             myXhr = $.ajaxSettings.xhr();
             return myXhr;
         }
-    });    
+    });
+})
+
+//
+//  FILE LISTING & SELECTION FUNCTIONS
+//
+function addTableRow(fileName) {
+    var newRow = "<tr name='"+fileName+"' class='selectableFiles' id='"+fileName+"'><td></td><td>"+fileName+"</td><td>None</td><td id=''>None</td></tr>";
+    $('#tableBody').append(newRow);
 }
 
-$(function() { //FILE MANAGER MODAL
-    var submitActor = null;
-    var $form = $( '#manage_form' );
-    var $submitActors = $form.find( 'button[type=submit]' );
+var file_selected = false;
+$(document).on('change', '.btn-file :file', function() {
+    var input = $(this),
+        numFiles = input.get(0).files ? input.get(0).files.length : 1,
+        files = input.get(0).files,
+        label = input.val().replace(/\\/g, '/').replace(/.*\//, '');
+    input.trigger('fileselect', [numFiles, label]);
+    file_selected = true;
+});
 
-    $form.submit( function( event ) {
-        event.preventDefault();
-        if ( null === submitActor ) {
-            submitActor = $submitActors[0];
+$(document).ready( function() {
+    $('.btn-file :file').on('fileselect', function(event, numFiles, label) {
+        
+        var input = $(this).parents('.input-group').find(':text'),
+            log = numFiles > 1 ? numFiles + ' files selected' : label;
+        if( input.length ) {
+            input.val(log);
+        } else {
+            if( log ) alert(log);
         }
-        //###----DELETE----###
-        if (submitActor.name == "delete") {
-            if (!$('input[name="fileName"]:checked').val()) {
-                showStatusMessage("No file selected","managerErrorMessage");
-            } else if ($('input[name="fileName"]:checked').val() == $("#openFile").attr('value')) {
-                showStatusMessage("Please close the file before deleting","managerErrorMessage");
-            } else if (!confirm("Are you sure you would like to delete the file: "+$('input[name="fileName"]:checked').val()+"?")) {
-                //DO NOTHING
-            } else {
-                var fileName = $('input[name="fileName"]:checked').val();
-                var formData = new FormData($(this)[0]);
-                deleteFile(formData,fileName);
-            }
-        //###----OPEN----###
-        } else if (submitActor.name == "open") {
-            var formData = new FormData($(this)[0]);
-            this.noValidate = true;
-            if (!$('input[name="fileName"]:checked').val()) {
-                showStatusMessage("No file selected","managerErrorMessage");
-            } else {
-                openFile(formData,fileName);
-            }
-        //###----UPLOAD----###
-        } else if (submitActor.name == "upload") {
-            var inputFile = document.getElementById("upload_file");
-            if (!file_selected) {
-                showStatusMessage("No file selected for upload","managerErrorMessage");
-            } else {
-                var fileName = $('input[type=file]').val().replace(/C:\\fakepath\\/i, '');
-                var formData = new FormData($(this)[0]);
-                addManagerOption(fileName)
-                uploadFile(formData,fileName);
-            }
-        }
-        return false;
-    });
-
-    $submitActors.click( function( event ) {
-        submitActor = this;
     });
 });
 
-function showStatusMessage(message,targetId) {
-    if (document.getElementById("errorMessage")) {
-        document.getElementById("errorMessage").remove();
-    };
-    var p = document.createElement('p');
-    p.setAttribute("id","errorMessage");
-    p.innerHTML = "<br>"+message;
-    document.getElementById(targetId).appendChild(p);
-    document.getElementById(targetId).style.display = "block";
+//Search Bar Functionality
+var doneTypingInterval = 500;  //time in ms
+//on keyup, start the countdown
+$('#fileName_search').keyup(function(){
+    var typingTimer = $(this).data('timer');
+    clearTimeout(typingTimer);
+
+    typingTimer = setTimeout(doneTyping, doneTypingInterval);
+
+    $(this).data('timer', typingTimer);
+});
+//on keydown, clear the countdown 
+$('#fileName_search').keydown(function(){
+    clearTimeout($(this).data('timer'));
+});
+//user is "finished typing," do something
+function doneTyping () {
+    var searchName = $('#fileName_search').val().toLowerCase();
+    $('#tableBody').children().each( function () {
+        var fileName = $(this).attr("name").toLowerCase();
+        if (fileName.indexOf(searchName) >= 0) {
+            $(this).show();
+        } else {
+            $(this).hide();
+        }
+    });
 }
 
-$("table :radio").change(function() {
-    $(".table tr.active").removeClass("active"); //remove previous active class
-    $(this).closest("tr").addClass("active"); //add active to radio selected tr
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+//Sorting protocols for the file manager table
+/*
+$('#tableFileName').click( function() {
+    sortTableByIndex(1,-1);
 });
+
+function sortTableByIndex(columnIndex,order) {
+    var rows = $('#tableBody').children(),
+        nameArray = new Array();
+        newRows = "";
+    
+    for (var i=0; i < rows.length; i++) {
+        nameArray[i] = [rows[i].cells[columnIndex].innerHTML,rows[i]];
+    }
+   
+    nameArray.sort(function(a, b){
+        return (a[columnIndex] == b[columnIndex]) ? 0 : ((a[columnIndex] > b[columnIndex]) ? order : -1*order);
+    });
+    
+
+    
+    for (var i=0; i< rows.length; i++) {
+        newRows += nameArray[i][1].outerHTML;
+    }
+    
+    $('#tableBody').html(newRows);
+}
+*/
+
 

@@ -4,7 +4,6 @@ import os
 import multiprocessing
 import TaxPy.inputFile_management.load_file as TaxLoad
 import TaxPy.db_management.db_wrap as TaxDb
-import TaxPy.data_processing.create_tree as TaxTree
 from ctypes import c_char_p
 
 # blocking task like querying to MySQL
@@ -20,12 +19,12 @@ class AlignFile():
     def __init__(self,userName,fileName=None,fileInfo=None):
         self.fileInfo = fileInfo
         if fileInfo == None:
-            self.fileName = os.path.splitext(fileName)[0]
+            self.fileName = fileName
         else:
-            self.fileName = os.path.splitext(fileInfo['filename'])[0]
+            self.fileName = fileInfo['filename']
         self.userName = userName
     
-    def importFile(self,status):
+    def importFile(self,loadOptions):
         """
         When an upload has been posted, retrieve the file, attempt to create
         a folder for the user with scheme "uploads/username/" then write the
@@ -54,12 +53,16 @@ class AlignFile():
                 cur.execute(cmd,(self.userName,self.fileName))
                 db.commit() 
                 rows = cur.rowcount
-        
+        def updateDbEntryStatus(self,status):
+            with TaxDb.openDb("TaxAssessor_Users") as db, TaxDb.cursor(db) as cur:
+                cmd = "UPDATE files SET status=%s WHERE username=%s AND filename=%s"
+                cur.execute(cmd,(status,self.userName,self.fileName))
+                db.commit()
         try:
             fileBody = self.fileInfo['body']
         except Exception:
-            status.value = "Error accessing file"
-            return
+            status = "Error accessing file"
+            return status
 
         try:
             os.mkdir("uploads/"+self.userName)
@@ -69,31 +72,33 @@ class AlignFile():
         try:
             createDbEntry(self)
         except Exception:
-            status.value = "Error: File already exists, please delete first!"
-            raise StopIteration
+            status = "File already exists, please delete first!"
+            return status
         
         try:
-            TaxLoad.loadFile(self.fileName,fileBody,self.userName)
-            status.value = "File upload & import successful!"
-        except Exception:
+            updateDbEntryStatus(self,"Processing")
+            TaxLoad.loadFile(self.fileName,fileBody,self.userName,
+                             loadOptions)
+            status = "SUCCESS"
+            updateDbEntryStatus(self,"Ready")           
+        except Exception,e:
+            print e
             deleteDbEntry(self)
-            status.value = "Error: File could not be imported into database"
-            raise StopIteration
+            status = str(e)
+        return status
                 
             
     def deleteRecords(self):
-        try:
-            with TaxDb.openDb("TaxAssessor_Users") as db, \
-                                  TaxDb.cursor(db) as cur:
-                cmd = ("SELECT uniqueId FROM files WHERE username=%s and "
-                       "filename=%s;")
-                cur.execute(cmd,(self.userName,self.fileName))
-                uniqueId = cur.fetchone()[0]
-                cmd = "DELETE FROM files WHERE uniqueId=%s;"
-                cur.execute(cmd,(uniqueId))
-                db.commit()   
-        except Exception:
-            pass
+        with TaxDb.openDb("TaxAssessor_Users") as db, \
+                              TaxDb.cursor(db) as cur:
+            cmd = ("SELECT uniqueId FROM files WHERE username=%s and "
+                   "filename=%s;")
+            cur.execute(cmd,(self.userName,self.fileName))
+            uniqueId = cur.fetchone()[0]
+            cmd = "DELETE FROM files WHERE uniqueId=%s;"
+            cur.execute(cmd,(uniqueId))
+            db.commit()   
+
         try:
             with TaxDb.openDb("TaxAssessor_Alignments") as db, \
                                        TaxDb.cursor(db) as cur:   
@@ -101,12 +106,13 @@ class AlignFile():
                 cur.execute(cmd)
                 db.commit()            
         except Exception:
-            pass
+            print "Error removing file table"
         
         try:
-            os.remove("uploads/"+self.userName+"/"+self.fileName+".json")
+            os.remove("uploads/"+self.userName+"/"+self.fileName+"_tree.json")
+            os.remove("uploads/"+self.userName+"/"+self.fileName+"_report.json")
         except Exception:
-            pass
+            print "Error removing flat files"
             
             
         print "Deleted: "+self.fileName

@@ -13,12 +13,18 @@ class TaxTree():
         self.includedTaxIds = taxIds
         self.taxCount = taxCount
         self.startingCount = copy.deepcopy(taxCount)
-        self.children = {1:[-1]}
-        self.parents = {-1:1}
-        self.names = {-1:"Unknown"}
+        if "-1" in self.includedTaxIds:
+            self.children = {1:[-1]}
+            self.parents = {-1:1}
+            self.names = {-1:"Unknown"}
+        else:
+            self.children = {}
+            self.parents = {}
+            self.names = {} 
 
     def getIncludedNodes(self):
         getParents = list(self.includedTaxIds)
+          
         with TaxDb.openDbSS("TaxAssessor_Refs") as db, \
                                        TaxDb.cursor(db) as cur:
             cmd = "SELECT parent from taxIdNodes_NCBI where child in "

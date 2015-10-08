@@ -19,3 +19,13 @@ CREATE TABLE files  (username VARCHAR(50) NOT NULL,
                      FOREIGN KEY (username) REFERENCES users(username),
                      PRIMARY KEY (uniqueId),
                      INDEX (username,filename));
+
+CREATE TABLE fileSets   (username VARCHAR(50) NOT NULL,
+                     setname VARCHAR(128) NOT NULL,
+                     filename VARCHAR(128) NOT NULL,
+                     uniqueId INT(20) NOT NULL AUTO_INCREMENT,
+                     FOREIGN KEY (username) REFERENCES users(username),
+                     PRIMARY KEY (uniqueId),
+                     INDEX (username,setname));
+                     
+CREATE DATABASE TaxAssessor_Alignments;

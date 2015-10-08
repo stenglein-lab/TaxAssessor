@@ -8,16 +8,21 @@ import json
 import hashlib
 import uuid
 import time
+import multiprocessing
+import datetime
 
 import TaxPy.inputFile_management.load_file as TaxLoad
 import TaxPy.inputFile_management.align_file_manager as TaxFileManager
 import TaxPy.db_management.db_wrap as TaxDb
 import TaxPy.data_processing.inspect_reads as TaxReads
 
-from multiprocessing.pool import ThreadPool
-from contextlib import closing
+from tornado.escape import json_encode
 
-_workers=ThreadPool(5)
+#from multiprocessing.pool import ThreadPool
+#from contextlib import closing
+#from ctypes import c_char_p
+
+#_workers=ThreadPool(5)
 
 class TaxAssessor(tornado.web.Application):
     """
@@ -41,7 +46,8 @@ class TaxAssessor(tornado.web.Application):
             self.db.close()
         except MySQLdb.OperationalError:
             self.db = MySQLdb.connect(user="taxassessor",passwd="taxassessor")
-            with open("db_setup.sql","r") as sqlFile, closing(self.db.cursor()) as cur:
+            with open("db_setup.sql","r") as sqlFile, \
+                    closing(self.db.cursor()) as cur:
                 cur.execute(sqlFile.read())
             self.db.close()   
 
@@ -82,18 +88,22 @@ class BaseHandler(tornado.web.RequestHandler):
         return None.
         """          
         with TaxDb.openDb("TaxAssessor_Users") as db, TaxDb.cursor(db) as cur:
-            cmd = "SELECT filename FROM files WHERE username=%s;"
+            cmd = "SELECT filename,dateModified,status FROM files WHERE username=%s;"
             cur.execute(cmd,userName)
-            fileInfo = [item[0] for item in cur.fetchall()]
-            return fileInfo
+            fileInfo = []
+            dates = []
+            statuses = []
+            f = '%Y-%m-%d %H:%M:%S'
+            for item in cur.fetchall():
+                fileInfo.append(item[0])
+                dates.append(item[1].strftime(f))
+                statuses.append(item[2])
+            return fileInfo,dates,statuses
 
     @tornado.web.authenticated
-    def get_current_fileName(self,userName):
-        with TaxDb.openDb("TaxAssessor_Users") as db, TaxDb.cursor(db) as cur:
-            cmd = "SELECT currentFile FROM users WHERE username=%s;"
-            cur.execute(cmd,userName)
-            fileName = cur.fetchone()[0]
-            return fileName
+    def get_current_fileName(self):
+        fileName = self.get_secure_cookie("TaxOpenFiles")
+        return fileName
 
     @tornado.web.authenticated
     def get_current_fileName_tableName(self,userName,fileName):
@@ -103,9 +113,17 @@ class BaseHandler(tornado.web.RequestHandler):
             cur.execute(cmd,(userName,fileName))
             fileId = cur.fetchone()[0]
             return fileId
-
-
-
+    
+    @tornado.web.authenticated
+    def get_current_set_list(self,userName):
+        with TaxDb.openDb("TaxAssessor_Users") as db, TaxDb.cursor(db) as cur:
+            fileSets = set()
+            cmd = "SELECT setName FROM fileSets WHERE userName=%s;"
+            cur.execute(cmd,userName)
+            for setName in cur.fetchall():
+                fileSets.add(setName[0])
+        return sorted(list(fileSets))
+        
 class Index(BaseHandler):
     """
     Handler to render the home page of TaxAssessor.
@@ -114,21 +132,26 @@ class Index(BaseHandler):
         firstName = self.get_current_firstName()
         if firstName is not None:
             userName = self.get_current_username()
-            fileListing = self.get_current_fileListing(userName)
-            openFile = self.get_current_fileName(userName)
+            fileListing,dates,statuses = self.get_current_fileListing(userName)
+            openFile = self.get_current_fileName()
+            setNames = self.get_current_set_list(userName)
         else:
             fileListing = []
             openFile = None
             userName = None
+            setNames = None
+            dates    = None
+            statuses = None
         self.render("index.html",user=firstName,fileListing=fileListing,
-                    openFile=openFile,userName=userName)
+                    openFile=openFile,userName=userName,setNames=setNames,
+                    dateModified=dates,statuses=statuses)
 
 class Login(BaseHandler):
     """
     Handler for login operations.
     """
     def get(self):
-        self.render("login.html",error="")
+        self.render("login.html",user=None,error="")
 
     def post(self):
         """
@@ -172,7 +195,7 @@ class Login(BaseHandler):
                 loginInfo = { 'username':   row[0],
                               'firstName':  row[1]}
                 loginInfo = json.dumps(loginInfo)
-                self.set_secure_cookie("TaxUser",loginInfo,expires_days=5)
+                self.set_secure_cookie("TaxUser",loginInfo,expires_days=10)
                 #self.set_fileListing_cookie(row[0])
                 self.redirect(r"/")
             else:
@@ -183,7 +206,7 @@ class Register(Login):
     Handler to process registration requests.
     """
     def get(self):
-        self.render("register.html",error="")
+        self.render("register.html",user=None,error="")
 
     def post(self):
         """
@@ -196,7 +219,8 @@ class Register(Login):
         password = self.get_argument("password","")
         firstName = self.get_argument("firstName","")
         lastName = self.get_argument("lastName","")
-        errorMessage,allow = self.checkValues(username,password,firstName,lastName)
+        errorMessage,allow = self.checkValues(username,password,
+                                              firstName,lastName)
         if not allow:
             self.render("register.html",error=errorMessage)
         else:
@@ -248,40 +272,56 @@ class Logout(BaseHandler):
     def get(self):
         self.clear_cookie("TaxUser")
         self.clear_cookie("TaxFiles")
+        self.clear_cookie("TaxOpenFiles")
         self.redirect("/")
 
-def run_background(func, callback, args=(), kwds={}):
-    def _callback(result):
-        tornado.ioloop.IOLoop.instance().add_callback(lambda: callback(result))
-    _workers.apply_async(func, args, kwds, _callback)
+# def run_background(func, callback, args=(), kwds={}):
+    # def _callback(result):
+        # tornado.ioloop.IOLoop.instance().add_callback(lambda: callback(result))
+    # _workers.apply_async(func, args, kwds, _callback)
  
 class Upload(BaseHandler):
     """
     Handler to perform upload operations.
     """
-    @tornado.web.asynchronous
     @tornado.web.authenticated
     def post(self):
         """
         When an upload request has been posted, spawn a new thread to handle 
         the upload.
         """
-        self.start = time.time()
-        try:
-            fileInfo = self.request.files['upFile'][0]
-            userName = self.get_current_username()
-            run_background(TaxFileManager.blocking_task, self.on_complete, (fileInfo,userName))
-        except Exception:
-            self.write("Error receiving file")
-            raise StopIteration
-    
-    def on_complete(self, res):
-        self.write(res)
-        self.finish()
-        self.end = time.time()
-        print (self.end-self.start),"seconds for all file processing"
-        if "Error" in res:
-            raise StopIteration
+        start = time.time() 
+        status = {}
+        loadOptions = self.getLoadOptions()
+        for file in self.request.files['upFile']:
+            try:
+                fileName = file['filename']
+                print "Filename: "+fileName
+                userName = self.get_current_username()
+                #run_background(TaxFileManager.blocking_task, self.on_complete, (fileInfo,userName))
+                alignFile = TaxFileManager.AlignFile(userName,fileInfo=file)
+                status[fileName] = alignFile.importFile(loadOptions)
+                print fileName+": "+status[fileName]
+                print "=------------------="
+            except Exception,e:
+                print e
+                status[fileName] = "Error receiving file"
+        self.write(json_encode(status))   
+        end = time.time()
+        print (end-start),"seconds for all file processing"
+            
+    def getLoadOptions(self):
+        options = {}
+        options["useLca"] = ("True" == self.get_argument('useLca'))
+        return options
+            
+    # def on_complete(self, res):
+        # self.write(res)
+        # self.finish()
+        # self.end = time.time()
+        # print (self.end-self.start),"seconds for all file processing"
+        # if "Error" in res:
+            # raise StopIteration
         
 class Open(BaseHandler):
     def get(self):
@@ -290,22 +330,13 @@ class Open(BaseHandler):
     @tornado.web.authenticated
     def post(self):
         fileName = self.get_argument("fileName")
-        userName = self.get_current_username()
-        with TaxDb.openDb("TaxAssessor_Users") as db, TaxDb.cursor(db) as cur:
-            cmd = "UPDATE users SET currentFile=%s WHERE username=%s;"
-            cur.execute(cmd,(fileName,userName))
-            db.commit()
+        self.set_secure_cookie("TaxOpenFiles",fileName,expires_days=10)
         self.redirect("/report")
 
 class Close(BaseHandler):
     @tornado.web.authenticated
     def get(self):
-        fileName = None
-        userName = self.get_current_username()
-        with TaxDb.openDb("TaxAssessor_Users") as db, TaxDb.cursor(db) as cur:
-            cmd = "UPDATE users SET currentFile=%s WHERE username=%s;"
-            cur.execute(cmd,(fileName,userName))
-            db.commit()
+        self.clear_cookie("TaxOpenFiles")
         self.redirect("/")
 
 class Delete(BaseHandler):
@@ -327,20 +358,14 @@ class Delete(BaseHandler):
         alignFile = TaxFileManager.AlignFile(userName,fileName=fileName)
         alignFile.deleteRecords()
 
-        openFile = self.get_current_fileName(userName)
+        openFile = self.get_current_fileName()
 
-        print openFile,fileName
-
-        if fileName == openFile:
-            with TaxDb.openDb("TaxAssessor_Users") as db, \
-                                  TaxDb.cursor(db) as cur:
-                cmd = "UPDATE users SET currentFile=%s WHERE username=%s;"
-                cur.execute(cmd,(None,userName))
-                db.commit()
+        print userName,openFile,fileName
 
 class ServeFile(tornado.web.StaticFileHandler):
+    @tornado.web.authenticated
     def get(self,path):
-        super(ServeFile,self).get(path)
+        super(ServeFile, self).get(path)
     
     def get_current_user(self):
         try: 
@@ -359,38 +384,98 @@ class ServeFile(tornado.web.StaticFileHandler):
             return True
         except Exception:
             return None
-
+            
+    def set_extra_headers(self, path):
+        self.set_header("Cache-control", "no-cache")        
+        
 class InspectReads(BaseHandler):
+    @tornado.web.authenticated
     def post(self):
         taxId = self.get_argument("taxId")
         taxName = self.get_argument("taxName")
         
         userName = self.get_current_username()
-        fileName = self.get_current_fileName(userName)
+        fileName = self.get_current_fileName()
         fileId   = self.get_current_fileName_tableName(userName,fileName)
         fileId   = "t"+str(fileId)
         
-        readLines,status = TaxReads.retrieveReads(userName,fileName,fileId,taxId)
+        readLines,status = TaxReads.retrieveReads(userName,fileName,
+                                                  fileId,taxId)
 
         alignInfo = {"name":taxName,"taxId":taxId,"status":status,
                      "info":readLines}
         self.write(json.dumps(alignInfo))
-
+        
+class SaveSet(BaseHandler):
+    @tornado.web.authenticated
+    def post(self):
+        setName = self.get_argument("setName")
+        fileNames = self.get_argument("setFiles")
+        fileNames = [str(s) for s in fileNames.split()]
+        userName = self.get_current_username()
+        
+        with TaxDb.openDb("TaxAssessor_Users") as db, TaxDb.cursor(db) as cur:
+            for fileName in fileNames:
+                cmd = ("INSERT INTO fileSets (username, setname, filename) "
+                       "VALUES (%s,%s,%s);")
+                params = (userName,setName,fileName)
+                cur.execute(cmd,params)
+            db.commit()
+        self.write("Set saved")
+        
+class GetSetList(BaseHandler):
+    @tornado.web.authenticated
+    def post(self):
+        userName = self.get_current_username()
+        setName = self.get_argument("setName")
+        with TaxDb.openDb("TaxAssessor_Users") as db, TaxDb.cursor(db) as cur:
+            cmd = """SELECT filename FROM fileSets WHERE setname=%s and 
+                     username=%s"""
+            params = (setName,userName)
+            cur.execute(cmd,params)
+            files = ""
+            for fileName in cur.fetchall():
+                files += fileName[0] + "\n"
+        self.write(files)
+             
 class ServeReports(BaseHandler):
     @tornado.web.authenticated
     def get(self,path):
         try:
             userName = self.get_current_username()
-            currentFile = self.get_current_fileName(userName)
+            currentFile = self.get_current_fileName()
             if currentFile:
                 self.render(path+".html",
                             userName    = userName,
                             user        = self.get_current_firstName(),
-                            fileListing = self.get_current_fileListing(userName),
-                            openFile    = self.get_current_fileName(userName))
+                           fileListing = self.get_current_fileListing(userName),
+                            openFile    = currentFile)
             else:
                 self.redirect("/")
         except IOError:
             self.write("Page not found")
+
+class CompareSets(BaseHandler):
+    @tornado.web.authenticated
+    def post(self):
+        userName = self.get_current_username()
+        sets = json.loads(self.get_argument("compareFiles"))
+        set1 = sets["set1"]
+        set2 = sets["set2"]
+        print "Comparing sets: ",set1,set2
+        #double check that the file exists
+        cmd = "SELECT filename FROM files where filename=%s and username=%s"
+        with TaxDb.openDb("TaxAssessor_Users") as db, TaxDb.cursor(db) as cur:
+            for set in sets:
+                for fileName in sets[set]:
+                    cur.execute(cmd,(fileName,userName))
+                    if not cur.fetchone():
+                        self.write("Error - "+fileName+" DOES NOT EXIST!")
+                        return
+                
+
+
+
+
 
 

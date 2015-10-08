@@ -8,7 +8,6 @@
     <link href="{{ static_url("css/bootstrap.css") }}" rel="stylesheet">
     <link href="{{ static_url("css/custom.css") }}" rel="stylesheet">
     <script src="{{ static_url("js/respond.js") }}" ></script>
-    <script src="http://d3js.org/d3.v3.min.js" charset="utf-8"></script>
     {% block head %}
     {% end %}
 </head>
@@ -72,6 +71,7 @@
 </div> <!-- Close container -->
 
 {% if user != None %}
+    <!--
     <div id="fileManagerModal" class="modal fade" tabindex="-1">
         <div class="modal-dialog">
             <div class="modal-content">
@@ -145,6 +145,7 @@
             </div>
         </div>
     </div>
+    -->
 {% end %}
 {% block modals %}
 {% end %}

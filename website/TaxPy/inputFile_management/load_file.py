@@ -11,13 +11,15 @@ import TaxPy.data_processing.create_read_report as TaxReport
 import multiprocessing
 import threading
 import time
+from collections import Counter
 
 class InputFile():
-    def __init__(self,fileName,fileBody,userName):
-        self.fileName = fileName
-        self.fileBody = fileBody
+    def __init__(self,fileName,fileBody,userName,loadOptions):
+        self.fileName    = fileName
+        self.fileBody    = fileBody
         self.fileType, self.delimiter = self.detectFileAttributes()
-        self.userName = userName
+        self.userName    = userName
+        self.loadOptions = loadOptions
         
     def genLine(self):
         inFile = self.fileBody.splitlines()
@@ -84,14 +86,98 @@ class FileTemplate():
             cur.execute(cmd,(self.fileName,self.userName))
             id = int(cur.fetchone()[0])
         return "t"+str(id)
+        
+    def getLowestCommonAncestor(self,readMinTaxIds,taxIds):
+        taxIds = set(taxIds)  #hacky way of getting around mutable objects being modified by functions
+        #get all included taxIds (in the tree)
+
+        newTaxIds = "("+str(taxIds).lstrip("set([").rstrip("])")+")"
+        with TaxDb.openDb("TaxAssessor_Refs") as db, TaxDb.cursor(db) as cur:
+            allTaxIds = False
+            taxIdParent = {}
+            while not allTaxIds:
+                cmd = "SELECT parent,child from taxIdNodes_NCBI where child in "
+                cmd += newTaxIds
+                cur.execute(cmd)
+                newTaxIds = "("
+                for row in cur:
+                    newTaxIds += "'"+str(row[0])+"',"
+                    parent = int(row[0])
+                    child = int(row[1])
+                    taxIds.add(parent)
+                    taxIdParent[child] = parent
+                newTaxIds = newTaxIds.rstrip(",")+")"
+                if len(newTaxIds) == 2:
+                    allTaxIds = True
+        
+        #get rank of all included taxIds
+        taxIdRank = {}
+        taxIdsToRemove = []
+        with TaxDb.openDb("TaxAssessor_Refs") as db, TaxDb.cursor(db) as cur:
+            cmd = "SELECT Rank FROM Taxon_Rank WHERE taxID=(%s)"
+            for taxId in taxIds:
+                cur.execute(cmd,taxId)
+                try:
+                    rank = int(cur.fetchone()[0])
+                    taxIdRank[taxId] = rank
+                except Exception:
+                    taxIdsToRemove.append(taxId)
+        for taxId in taxIdsToRemove:
+            taxIds.remove(taxId)
+        
+        #find the lowest common ancestor for each read
+        readMinLcaTaxIds = {}
+        for readName in readMinTaxIds:
+            if len(readMinTaxIds[readName]) > 1:
+                taxIdCount = Counter({})
+                for taxId in readMinTaxIds[readName]:
+                    tempTaxIdCount = Counter({})
+                    if taxId == -1:
+                        continue
+                    atRoot = False
+                    while not atRoot:
+                        if taxId in tempTaxIdCount:
+                            tempTaxIdCount[taxId] += 1
+                        else:
+                            tempTaxIdCount[taxId] = 1
+                        if taxId == 1:
+                            atRoot = True
+                        else:
+                            try:
+                                taxId = taxIdParent[taxId]
+                            except KeyError: #ISOLATED PORTION OF TREE: NUKE TEMP DATA
+                                tempTaxIdCount = Counter({})
+                                atRoot = True
+                    taxIdCount = taxIdCount + tempTaxIdCount
+                
+                    consensusCount = 0
+                    for taxId in taxIdCount:
+                        if taxIdCount[taxId] > consensusCount:
+                            consensusCount = taxIdCount[taxId]
+                            consensusRank = taxIdRank[taxId]
+                            consensusTaxId = taxId
+
+                        elif taxIdCount[taxId] == consensusCount:
+                            rank = taxIdRank[taxId]
+                            if rank > consensusRank: 
+                                consensusTaxId = taxId
+                                consensusRank = rank
+
+                    readMinLcaTaxIds[readName] = consensusTaxId
+            else:
+                (readMinLcaTaxIds[readName],) = readMinTaxIds[readName]
+
+
+        return readMinLcaTaxIds
                 
 class BlastFile(InputFile,FileTemplate):
     def __init__(self,InputFile):
         #Basic File Information
-        self.fileName  = InputFile.fileName
-        self.fileBody  = InputFile.fileBody
-        self.delimiter = InputFile.delimiter
-        self.userName  = InputFile.userName
+        self.fileName    = InputFile.fileName
+        self.fileBody    = InputFile.fileBody
+        self.delimiter   = InputFile.delimiter
+        self.userName    = InputFile.userName
+        self.loadOptions = InputFile.loadOptions
         #Information for building the taxonomy tree
         self.readMinScore = {}
         self.readMinGis = {}
@@ -119,6 +205,7 @@ class BlastFile(InputFile,FileTemplate):
         readMinGis = {}
         readMinCount = {}
         readMinLines = {}
+        readMinTaxIds = {}
         
         #move through the file extracting the best alignment(s) for each read.
         for line in self.genLine():
@@ -159,8 +246,25 @@ class BlastFile(InputFile,FileTemplate):
                 taxId = int(data[1])
                 if taxId == 0:
                     taxId = -1
+                taxIds.add(taxId)
                 giToTax[gi] = taxId
         
+        #get lowest common ancestor for each read
+        for readName in readMinGis:
+            for gi in readMinGis[readName]:
+                try:
+                    if readName not in readMinTaxIds:
+                        readMinTaxIds[readName] = set([giToTax[gi]])
+                    else:
+                        readMinTaxIds[readName].add(giToTax[gi])
+                except KeyError: #GI's taxId is unknown
+                    if readName not in readMinTaxIds:
+                        readMinTaxIds[readName] = set([-1])
+                    else:
+                        readMinTaxIds[readName].add(-1)
+
+        consensusTaxIds = self.getLowestCommonAncestor(readMinTaxIds,taxIds)
+              
         #begin processes that prepare the data and perform the database import
         parent,child = multiprocessing.Pipe()
         p=[]
@@ -169,29 +273,30 @@ class BlastFile(InputFile,FileTemplate):
         p.append(multiprocessing.Process(target=self.produceDumpForDb,
                                          args=(readMinGis,readMinLines,
                                                readMinScore,readMinCount,
-                                               giToTax,parent)))
+                                               giToTax,parent,consensusTaxIds)))
         for process in p:
             process.start()
         
-        #count up the contributions of GIs that belong to the same TaxID
-        for gi in gis:
-            if gi in giToTax and giToTax[gi] != 0: # 0 value = unknown
-                taxId = giToTax[gi]
+        #count up the contributions from reads that belong to the same TaxID
+        taxIds = set()
+        for readName in consensusTaxIds:
+            taxId = consensusTaxIds[readName]
+            taxIds.add(taxId)
+            if taxId in taxCount:
+                taxCount[taxId] += 1
             else:
-                taxId = -1
-            if taxId not in taxIds:
-                taxIds.add(taxId)
-                taxCount[taxId] = giCount[gi]
-            else:
-                taxCount[taxId] += giCount[gi]
+                taxCount[taxId] = 1
         
         #begin process to generate read report
         report = TaxReport.ReadReport(readMinGis,readMinScore,
                                       readMinCount,taxCount,gis) 
         readReport = report.createReport()      
-                                               
         
         self.giToTax = giToTax
+        
+        for process in p:
+            process.join()
+        
         return taxIds,taxCount,readReport
         
     def createDbTable(self):
@@ -201,19 +306,21 @@ class BlastFile(InputFile,FileTemplate):
                                        taxId        INT(11) NOT NULL,
                                        count        FLOAT(11) NOT NULL,
                                        eValue       FLOAT(11) NOT NULL,
+                                       consensusTaxId INT(11) NOT NULL,
                                        readLine     VARCHAR(210) NOT NULL,
-                                       INDEX (readName),
-                                       INDEX (taxId,eValue));"""
+                                       INDEX (consensusTaxId),
+                                       INDEX (eValue));"""
                                        % (self.dbTableName))
             cur.execute(cmd)
          
     def produceDumpForDb(self,readMinGis,readMinLines,readMinScore,
-                        readMinCount,giToTax,conn):
+                        readMinCount,giToTax,conn,readMinLCATaxIds):
         countDump = 0
         dump = []
         for readName in readMinGis:
             eValue = readMinScore[readName]
             count = readMinCount[readName]
+            consensusTaxId = readMinLCATaxIds[readName]
             for index,gi in enumerate(readMinGis[readName]):
                 alignLine = readMinLines[readName][index]
                 try:
@@ -221,7 +328,8 @@ class BlastFile(InputFile,FileTemplate):
                 except Exception:
                     continue
                 countDump += 1
-                dump.append((readName,taxId,count,eValue,alignLine))
+                dump.append((readName,taxId,count,eValue,
+                             consensusTaxId,alignLine))
                 if countDump % 10000 == 0:
                     dump = str(dump).rstrip("]").lstrip("[")
                     conn.send(dump)
@@ -236,14 +344,15 @@ class BlastFile(InputFile,FileTemplate):
         self.createDbTable()
         with TaxDb.openDb("TaxAssessor_Alignments") as db, \
                                    TaxDb.cursor(db) as cur:   
-            cmd = ("""INSERT INTO %s (readName,taxId,count,eValue,readLine)
-                                      VALUES """ % (self.dbTableName))
+            cmd = ("""INSERT INTO %s (readName,taxId,count,eValue,
+                      consensusTaxId,readLine) VALUES """ % (self.dbTableName))
             cur.execute("START TRANSACTION;")
             cur.execute("SET autocommit=0;")
             dump = []
             while True:
                 dump = conn.recv()
                 if dump == None:
+                    print "Finished DB Loading"
                     conn.close()
                     return
                 else:
@@ -251,8 +360,8 @@ class BlastFile(InputFile,FileTemplate):
                     cur.execute(dump)
                     db.commit()
 
-def loadFile(fileName,fileBody,userName):
-    inputFile = InputFile(fileName,fileBody,userName)
+def loadFile(fileName,fileBody,userName,loadOptions):
+    inputFile = InputFile(fileName,fileBody,userName,loadOptions)
     
     if inputFile.fileType == "BLAST":
         inputFile = BlastFile(inputFile)
@@ -260,12 +369,11 @@ def loadFile(fileName,fileBody,userName):
         taxTree = TaxTree.createTree(taxIds,taxCount)
         with open("uploads/"+userName+"/"+fileName+"_tree.json","w") as outFile:
             outFile.write(taxTree)
-        with open("uploads/"+userName+"/"+fileName+"_readReport.json","w") as outFile:
+        with open("uploads/"+userName+"/"+fileName+"_report.json","w") as outFile:
             outFile.write(readReport)
         return
     else:
-        warnings.warn("UNKNOWN FILETYPE! DELETING")
-        raise Exception
+        raise Exception("Error: Unknown file type")
         return
 
 

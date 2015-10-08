@@ -4,14 +4,16 @@ import logging
 import handlers
 import tornado.ioloop
 
-from tornado.options import define, options
+from tornado.options import define
+from tornado.options import options
 from tornado.web import StaticFileHandler
 
-
-app_port = 2222
-
+define("port", default="8000")
 
 def main():
+
+    tornado.options.parse_command_line()
+    print tornado.options.options.port
 
     this_dir = os.path.dirname(__file__)
 
@@ -23,10 +25,13 @@ def main():
             (r'/upload',    handlers.Upload),
             (r'/open',      handlers.Open),
             (r'/delete',    handlers.Delete),
-            (r'/docs/(.*)', tornado.web.StaticFileHandler, {'path':
+            (r'/docs/(.*)', handlers.ServeFile, {'path':
                 '/home/jallison/TaxAssessor/website/uploads/'}),
             (r'/close',     handlers.Close),
             (r'/inspect',   handlers.InspectReads),
+            (r'/saveSet',   handlers.SaveSet),
+            (r'/getSet',    handlers.GetSetList),
+            (r'/compare',   handlers.CompareSets),
             (r'/(.+)',      handlers.ServeReports)
     ]
 
@@ -37,9 +42,9 @@ def main():
                 'xsrf_cookies':     True,
                 'login_url':        '/login'
     }
-
+            
     app = handlers.TaxAssessor(app_handlers,**options)
-    app.listen(app_port,max_buffer_size=(4*1024**3))
+    app.listen(tornado.options.options.port,max_buffer_size=(4*1024**3))
 
     tornado.ioloop.IOLoop.instance().start()
 
