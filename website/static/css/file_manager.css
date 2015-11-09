@@ -48,3 +48,8 @@ textarea.form-control {
 .btn-compare {
     margin-top: 3px;
 }
+
+#test_type {
+    padding-top: 10px;
+    padding-right: 15px;
+}

@@ -26,7 +26,7 @@ $('#manageTabs a[href="#Open"]').click(function (e) {
             processData:false,
             cache:false,
             success:function(resp){
-                location.replace("http://stengleinlab101.cvmbs.colostate.edu:2222/report")
+                location.replace("http://stengleinlab101.cvmbs.colostate.edu:2222/file_report")
             },
             error:function(resp){
                 console.log(resp);
@@ -49,12 +49,16 @@ $('#manageTabs a[href="#Compare"]').click(function (e) {
     e.preventDefault();
     $(this).tab('show');
     $("#compare_sets_button_container").show();
+    $("#selectAllFiles").show();
     
     //Remove the buttons
     changeFileButtons(""); 
     
     var container1 = new SetListContainer("set1","panel-info","btn-primary","Set 1","info"),
-        container2 = new SetListContainer("set2","panel-success","btn-success","Set 2","success");
+        container2 = new SetListContainer("set2","panel-success","btn-success","Set 2","success"),
+        testType   = new TestType(container1,container2);
+    container1.testType = testType;
+    container2.testType = testType;
     
     $('.selectableFiles').click( function() {
         //if it already belongs to a set
@@ -68,7 +72,8 @@ $('#manageTabs a[href="#Compare"]').click(function (e) {
             container1.updateListStatus();
             container2.updateListStatus();
             container1.resetSetTitle();
-            container2.resetSetTitle();            
+            container2.resetSetTitle();   
+            testType.update();
             
         //if it does not belong to a set
         } else {
@@ -82,6 +87,7 @@ $('#manageTabs a[href="#Compare"]').click(function (e) {
                 container.addItemToList($(this));
                 container.updateListStatus(); 
                 container.resetSetTitle();
+                testType.update();
             }
         }
     });
@@ -95,6 +101,7 @@ $('#manageTabs a[href="#Compare"]').click(function (e) {
         container.removeAllItemsFromList();
         container.resetSetTitle();
         container.updateListStatus();
+        testType.update()
     });
     $('.set_save').click( function(e) {
         if ($(this).attr("id") == "set1_save") {
@@ -155,230 +162,298 @@ $('#manageTabs a[href="#Compare"]').click(function (e) {
     $('.loadSetButton').click({container1:container1,container2:container2},
                                loadFileNamesIntoContainer);
     $('#compare_sets_button_container').click({container1:container1,container2:container2},
-                                               submitSetsForComparison);
-})
+                                              submitSetsForComparison);
+    $("#selectAllFiles").click({container1:container1,container2:container2},
+                                selectAllShownFiles);
 
-function populateSetMouseOver() {
-    var listName = $(this).children()[1].innerHTML;
-    $('#getSetName').val(listName);
-    var formData = new FormData($('#getSetForm')[0]);
-    var button = $(this);
-    $.ajax({
-        url:"/getSet",
-        type:"POST",
-        data:formData,
-        contentType:false,
-        processData:false,
-        cache:false,
-        success: function(resp) {
-            button.popover({title: listName, content: resp}).popover("show");
-            button.mouseenter(function () {button.popover({title: listName, content: resp}).popover("show");})
-        },
-        error: function(resp) {
-            popoverContent = "ERROR";
-        }
-    });  
-}
-
-function loadFileNamesIntoContainer(event) {
-    var container1 = event.data.container1,
-        container2 = event.data.container2;
-    var listName = $(this).parent().parent().children()[1].innerHTML;
-    $('#getSetName').val(listName);
-    var formData = new FormData($('#getSetForm')[0]);
-    $.ajax({
-        url:"/getSet",
-        type:"POST",
-        data:formData,
-        contentType:false,
-        processData:false,
-        cache:false,
-        success: function(resp) {
-            var fileNames = resp.split("\n");
-            var container;
-            if (selectedSet == "set1") {
-                containerTo   = container1;
-                containerFrom = container2;
-            } else {
-                containerTo   = container2;
-                containerFrom = container1;
+    function TestType(container1,container2) {
+        this.container1 = container1;
+        this.container2 = container2;
+        this.testContainer = $("#test_type_container");
+        this.testText = $("#test_type");
+        this.compareButton = $("#compare_sets_submit")
+        
+        this.update = function() {
+            if (this.container1.nList > 2 && this.container2.nList > 2) {
+                this.testContainer.show();
+                this.testText.html("t-test between sets")
+                this.compareButton.removeClass("disabled")
+            } else if ((this.container1.nList > 2 && this.container2.nList == 0) ||
+                       (this.container1.nList == 0 && this.container2.nList > 2)) {
+                this.testContainer.show();
+                this.testText.html("Evaluate z score for each item in set")       
+                this.compareButton.removeClass("disabled")
+            } else if (this.container1.nList <= 2 && this.container2.nList <= 2) {
+                this.testContainer.hide();
+                this.compareButton.addClass("disabled")
+            } else if ((this.container1.nList > 2 && this.container2.nList > 0 && this.container2.nList <= 2) ||
+                       (this.container1.nList > 0 && this.container1.nList <= 2 && this.container2.nList > 2)) {
+                this.testContainer.hide(); 
+                this.compareButton.addClass("disabled")
             }
-            containerTo.removeAllItemsFromList();
-            containerTo.setSetTitle(listName);
-            var startLength = containerFrom.list.children().length
-            var missingFileNames = ""
-            for (var i=0;i< fileNames.length-1; i++) {
-                containerFrom.removeItemFromList(fileNames[i]);
-                fileListRow = document.getElementById(fileNames[i]);
-                if (fileListRow !== null) {
-                    containerTo.addItemToList($(fileListRow));                
-                } else {
-                    missingFileNames += "<br>"+fileNames[i];
-                }
-            }
-            if (missingFileNames.length > 0) {
-                console.log('here');
-                containerTo.removeAllItemsFromList();
-                containerTo.resetSetTitle();
-                var errorMessage = "<div class='alert alert-danger alert-block'><strong>-Missing Files-</strong>"+missingFileNames+"</div>"
-                $("#loadErrorFooter").html(errorMessage);
-                $("#loadErrorFooter").show();
-                console.log(errorMessage);
-            };
-            if (startLength != containerFrom.list.children().length) {containerFrom.resetSetTitle()};
-            container1.updateListStatus();
-            container2.updateListStatus();
-            
-        },
-        error: function(resp) {
-            popoverContent = "ERROR";
-        }
-    }); 
-}
+        };
 
-function SetListContainer(containerId,activePanelClass,activeButtonClass,defaultTitle,selectedRowClass) {
-    this.container = $("#"+containerId);
-    this.buttons   = $("."+containerId+"_buttons");
-    this.list      = $("#"+containerId+"_list");
-    this.status    = $("#"+containerId+"_status");
-    this.title     = $("#"+containerId+"_title");
-    
-    //Panel Toggling
-    this.makePanelActive = function() {
-        this.container.addClass(activePanelClass).removeClass("panel-default");
-        this.buttons.each( function () {
-            $(this).addClass(activeButtonClass).removeClass("btn-default");
-        });        
-    }
-    this.makePanelInactive = function() {
-        this.container.removeClass(activePanelClass).addClass("panel-default");
-        this.buttons.each( function () {
-            $(this).removeClass(activeButtonClass).addClass("btn-default");
-        });       
-    }
-    //Panel Information
-    this.updateListStatus = function() {
-        var nList = this.list.children().length;
-        if (nList == 0) {
-            this.status.html("");
-        } else {
-            this.status.html(nList+" files selected");
-        }
-    }
-    this.resetSetTitle = function() {
-        this.title.html(defaultTitle);
-    }
-    this.setSetTitle = function(title) {
-        this.title.html(title);
-    }
-    //List Management
-    this.addItemToList = function(fileManagerRow) {
-        fileManagerRow.addClass(selectedRowClass);
-        var fileName = fileManagerRow.attr("name");
-        var newPanelRow = $("<a class='list-group-item set-items' id='"+fileName+"_selected'>"+fileName+"</a>");
-        this.list.append(newPanelRow);
-        var removeRowEvent = (function (event) {
-            event.data.panelRow.remove();
-            event.data.fileManagerRow.removeClass(selectedRowClass);
-            this.updateListStatus();
-            this.resetSetTitle();
-        }).bind(this)
-        newPanelRow.click( {panelRow: newPanelRow, fileManagerRow: fileManagerRow}, removeRowEvent );
-    }
-    this.removeItemFromList = function(fileName) {
-        var row = $(document.getElementById(fileName+"_selected"));
-        row.remove();
-        var fileManagerRow = $(document.getElementById(fileName));
-        fileManagerRow.removeClass(selectedRowClass);
-    }
-    this.removeAllItemsFromList = function() {
-        this.list.empty();
-        $('#tableBody').children().each( function() {
-                $(this).removeClass(selectedRowClass);
-        });
-    }
-    this.saveItemsInList = function() {
-        $('#setFiles').html("");
-        this.list.children().each( function() {
-            $('#setFiles').html($('#setFiles').html()+this.innerHTML+"\n");
-        })    
-        if ($('#setFiles').is(':empty')) {
-            this.status.html("Please select files");
-        } else {
-            $("#save_set").modal("show");
-        }    
-    }
-    //List Output
-    this.exportList = function() {
-        var setList = new Array();
-        this.list.children().each( function() {
-            setList.push($(this).html());
-        })
-        return setList;
-    }
-    
-    
-}
 
-function checkIfSetNameValid(setName,setNameElement) {
-    var valid = true;
-    if (setName == "") {
-        setNameElement.css("background-color","#FFEECC");
-        valid = false;
     }
-    if (!valid) {return valid}
-    $('#setTableBody').children().each( function () {
-        if (setName == $(this).children()[1].innerHTML) {
-            setNameElement.css("background-color","#FFEECC");
-            setNameElement.popover({content: "Set name already exists!",placement:"top"}).popover("show");
-            return valid = false;                
-        }
-        return valid;
-    });
-    return valid;
-}
 
-function submitSetsForComparison(event) {
-    var container1 = event.data.container1,
-        container2 = event.data.container2;
-    if (container1.list.children().length == 0 || container2.list.children().length == 0) {
-        $("#compare_sets_button_container").popover({content: "Each set must have at least one file",placement:"top"}).popover("show");
-        setTimeout(function() {
-            $("#compare_sets_button_container").popover("destroy");
-        }, 2000);
-    } else {
-        var setLists = {"set1":container1.exportList(),
-                        "set2":container2.exportList()}
-        $('#set_files_input').val(JSON.stringify(setLists));
-        var formData = new FormData($('#compare_form')[0]);
-        $("#compare_sets_submit").prop("disabled",true)
+    function populateSetMouseOver() {
+        var listName = $(this).children()[1].innerHTML;
+        $('#getSetName').val(listName);
+        var formData = new FormData($('#getSetForm')[0]);
+        var button = $(this);
         $.ajax({
-            url:"/compare",
+            url:"/getSet",
             type:"POST",
             data:formData,
             contentType:false,
             processData:false,
             cache:false,
             success: function(resp) {
-                console.log(resp.indexOf("Error"));
-                if (resp.indexOf("Error") > -1) {
-                    console.log("Error: "+resp);
-                } else {
-                    console.log("Success: "+resp);
-                }
-                $("#compare_sets_submit").prop("disabled",false)
+                button.popover({title: listName, content: resp}).popover("show");
+                button.mouseenter(function () {button.popover({title: listName, content: resp}).popover("show");})
             },
             error: function(resp) {
-                console.log("ERROR: "+resp);
-                $("#compare_sets_submit").prop("disabled",false)
-            },
-            xhr:function(){
-                myXhr = $.ajaxSettings.xhr();
-                return myXhr;
+                popoverContent = "ERROR";
             }
         });  
     }
-}
+
+    function loadFileNamesIntoContainer(event) {
+        var container1 = event.data.container1,
+            container2 = event.data.container2;
+        var listName = $(this).parent().parent().children()[1].innerHTML;
+        $('#getSetName').val(listName);
+        var formData = new FormData($('#getSetForm')[0]);
+        $.ajax({
+            url:"/getSet",
+            type:"POST",
+            data:formData,
+            contentType:false,
+            processData:false,
+            cache:false,
+            success: function(resp) {
+                var fileNames = resp.split("\n");
+                var container;
+                if (selectedSet == "set1") {
+                    containerTo   = container1;
+                    containerFrom = container2;
+                } else {
+                    containerTo   = container2;
+                    containerFrom = container1;
+                }
+                containerTo.removeAllItemsFromList();
+                containerTo.setSetTitle(listName);
+                var startLength = containerFrom.list.children().length
+                var missingFileNames = ""
+                for (var i=0;i< fileNames.length-1; i++) {
+                    containerFrom.removeItemFromList(fileNames[i]);
+                    fileListRow = document.getElementById(fileNames[i]);
+                    if (fileListRow !== null) {
+                        containerTo.addItemToList($(fileListRow));                
+                    } else {
+                        missingFileNames += "<br>"+fileNames[i];
+                    }
+                }
+                if (missingFileNames.length > 0) {
+                    console.log('here');
+                    containerTo.removeAllItemsFromList();
+                    containerTo.resetSetTitle();
+                    var errorMessage = "<div class='alert alert-danger alert-block'><strong>-Missing Files-</strong>"+missingFileNames+"</div>"
+                    $("#loadErrorFooter").html(errorMessage);
+                    $("#loadErrorFooter").show();
+                    console.log(errorMessage);
+                };
+                if (startLength != containerFrom.list.children().length) {containerFrom.resetSetTitle()};
+                container1.updateListStatus();
+                container2.updateListStatus();
+                
+            },
+            error: function(resp) {
+                popoverContent = "ERROR";
+            }
+        }); 
+    }
+
+    function SetListContainer(containerId,activePanelClass,activeButtonClass,defaultTitle,selectedRowClass) {
+        this.container = $("#"+containerId);
+        this.buttons   = $("."+containerId+"_buttons");
+        this.list      = $("#"+containerId+"_list");
+        this.status    = $("#"+containerId+"_status");
+        this.title     = $("#"+containerId+"_title");
+        this.nList     = 0;
+        this.testType  = null;
+        
+        //Panel Toggling
+        this.makePanelActive = function() {
+            this.container.addClass(activePanelClass).removeClass("panel-default");
+            this.buttons.each( function () {
+                $(this).addClass(activeButtonClass).removeClass("btn-default");
+            });        
+        }
+        this.makePanelInactive = function() {
+            this.container.removeClass(activePanelClass).addClass("panel-default");
+            this.buttons.each( function () {
+                $(this).removeClass(activeButtonClass).addClass("btn-default");
+            });       
+        }
+        //Panel Information
+        this.updateListStatus = function() {
+            this.nList = this.list.children().length;
+            if (this.nList == 0) {
+                this.status.html("");
+            } else {
+                this.status.html(this.nList+" files selected");
+            }
+        }
+        this.resetSetTitle = function() {
+            this.title.html(defaultTitle);
+        }
+        this.setSetTitle = function(title) {
+            this.title.html(title);
+        }
+        //List Management
+        this.addItemToList = function(fileManagerRow) {
+            fileManagerRow.addClass(selectedRowClass);
+            var fileName = fileManagerRow.attr("name");
+            if ($(document.getElementById(fileName+"_selected")).length == 0) {
+                var newPanelRow = $("<a class='list-group-item set-items' id='"+fileName+"_selected'>"+fileName+"</a>");
+                this.list.append(newPanelRow);
+                var removeRowEvent = (function (event) {
+                    event.data.panelRow.remove();
+                    event.data.fileManagerRow.removeClass(selectedRowClass);
+                    this.updateListStatus();
+                    this.resetSetTitle();
+                    this.testType.update();
+                }).bind(this)
+                newPanelRow.click( {panelRow: newPanelRow, fileManagerRow: fileManagerRow}, removeRowEvent );
+            }
+        }
+        this.removeItemFromList = function(fileName) {
+            var row = $(document.getElementById(fileName+"_selected"));
+            row.remove();
+            var fileManagerRow = $(document.getElementById(fileName));
+            fileManagerRow.removeClass(selectedRowClass);
+        }
+        this.removeAllItemsFromList = function() {
+            this.list.empty();
+            $('#tableBody').children().each( function() {
+                    $(this).removeClass(selectedRowClass);
+            });
+        }
+        this.saveItemsInList = function() {
+            $('#setFiles').html("");
+            this.list.children().each( function() {
+                $('#setFiles').html($('#setFiles').html()+this.innerHTML+"\n");
+            })    
+            if ($('#setFiles').is(':empty')) {
+                this.status.html("Please select files");
+            } else {
+                $("#save_set").modal("show");
+            }    
+        }
+        //List Output
+        this.exportList = function() {
+            var setList = new Array();
+            this.list.children().each( function() {
+                setList.push($(this).html());
+            })
+            return setList;
+        }
+        
+        
+    }
+
+    function checkIfSetNameValid(setName,setNameElement) {
+        var valid = true;
+        if (setName == "") {
+            setNameElement.css("background-color","#FFEECC");
+            valid = false;
+        }
+        if (!valid) {return valid}
+        $('#setTableBody').children().each( function () {
+            if (setName == $(this).children()[1].innerHTML) {
+                setNameElement.css("background-color","#FFEECC");
+                setNameElement.popover({content: "Set name already exists!",placement:"top"}).popover("show");
+                return valid = false;                
+            }
+            return valid;
+        });
+        return valid;
+    }
+
+    function submitSetsForComparison(event) {
+        var container1 = event.data.container1,
+            container2 = event.data.container2;
+        if (container1.list.children().length <= 2 && container2.list.children().length <= 2) {
+            $("#compare_sets_button_container").popover({content: "You must select files to compare",placement:"top"}).popover("show");
+            setTimeout(function() {
+                $("#compare_sets_button_container").popover("destroy");
+            }, 2000);
+        } else {
+            var setLists = {"set1":container1.exportList(),
+                            "set2":container2.exportList()}
+            $('#set_files_input').val(JSON.stringify(setLists));
+            $("#compare_form").submit()
+            /*var formData = new FormData($('#compare_form')[0]);
+            $("#compare_sets_submit").prop("disabled",true)
+            $.ajax({
+                url:"/compare",
+                type:"POST",
+                data:formData,
+                contentType:false,
+                processData:false,
+                cache:false,
+                success: function(resp) {
+                    console.log(resp.indexOf("Error"));
+                    if (resp.indexOf("Error") > -1) {
+                        console.log("Error: "+resp);
+                    } else {
+                        console.log("Success: "+resp);
+                    }
+                    $("#compare_sets_submit").prop("disabled",false)
+                },
+                error: function(resp) {
+                    console.log("ERROR: "+resp);
+                    $("#compare_sets_submit").prop("disabled",false)
+                },
+                xhr:function(){
+                    myXhr = $.ajaxSettings.xhr();
+                    return myXhr;
+                }
+            });*/
+        }
+    }
+    
+    function selectAllShownFiles(event) {
+        var container1 = event.data.container1,
+            container2 = event.data.container2;    
+        if (selectedSet == "set1") {
+            var container = container1;
+        } else if (selectedSet == "set2"){
+            var container = container2;
+        } else {
+            return;
+        }
+        if (this.checked) {
+            $('#tableBody').children().each( function () {
+                if ($(this).is(":visible")) {
+                    container.addItemToList($(this));
+                    container.updateListStatus();
+                    testType.update()
+                }
+            });
+        } else {
+            $('#tableBody').children().each( function () {
+                if ($(this).is(":visible")) {
+                    var fileName = $(this).children()[1].innerHTML
+                    container.removeItemFromList(fileName);
+                    container.updateListStatus();
+                    testType.update()
+                }
+            })
+        }
+    }    
+})
 
 $('#manageTabs a[href!="#Compare"]').click(function (e) {
     $('#tableBody').unbind("click");
@@ -390,6 +465,7 @@ $('#manageTabs a[href!="#Compare"]').click(function (e) {
     $('.loadSetButton').unbind();
     $("#compare_sets_button_container").unbind();
     $("#compare_sets_button_container").hide();
+    $("#selectAllFiles").hide();
 })
 
 $('#manageTabs a[href="#Upload"]').click(function (e) {
@@ -525,7 +601,7 @@ $(".openFileButton").click( function(e) {
         processData:false,
         cache:false,
         success:function(resp){
-            location.replace("http://stengleinlab101.cvmbs.colostate.edu:2222/report")
+            location.replace("http://stengleinlab101.cvmbs.colostate.edu:2222/file_report")
         },
         error:function(resp){
             console.log(resp);

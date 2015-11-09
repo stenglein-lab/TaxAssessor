@@ -13,7 +13,7 @@ class TaxTree():
         self.includedTaxIds = taxIds
         self.taxCount = taxCount
         self.startingCount = copy.deepcopy(taxCount)
-        if "-1" in self.includedTaxIds:
+        if -1 in self.includedTaxIds:
             self.children = {1:[-1]}
             self.parents = {-1:1}
             self.names = {-1:"Unknown"}

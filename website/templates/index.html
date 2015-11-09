@@ -42,7 +42,8 @@
                     <li role="presentation"><a href="#Upload" aria-controls="Upload" role="tab" data-toggle="tab">Upload</a></li>
                     <li role="presentation"><a href="#Delete" aria-controls="Delete" role="tab" data-toggle="tab">Delete</a></li>
                     <li role="presentation"><input type="text" id="fileName_search" class="form-control" placeholder="Search"></li>
-                    <li role="presentation" class="pull-right" style="display: none;" id="compare_sets_button_container"><button class="btn btn-primary btn-compare" id="compare_sets_submit">Compare</button></li>
+                    <li role="presentation" class="pull-right" style="display: none;" id="compare_sets_button_container"><button class="btn btn-primary btn-compare disabled" id="compare_sets_submit">Compare</button></li>
+                    <li role="presentation" class="pull-right" style="display: none;" id="test_type_container"><p id="test_type">stuff</p></li>
                 </ul>
                 <div class="tab-content">
                     <!--OPEN-->
@@ -141,7 +142,7 @@
                                             <a href="#">
                                                 <label for="useLca">
                                                     <input type="hidden" value="False" name="useLca" >
-                                                    <input type="checkbox" value="True" name="useLca" id="useLca">  Use LCA
+                                                    <input type="checkbox" value="True" name="useLca" id="useLca" checked>  Use LCA
                                                 </label>
                                             </a>
                                         </li>
@@ -163,12 +164,14 @@
                             <input type="text" name="fileName" id="delete_file" style="display: none;"/>
                         </form>
                     </div>
-                    <!--TABLE-->
+                    <!--FILE TABLE-->
                     <div class="table-responsive fileTable" id="fileTable">
                         <table class="table table-striped table-hover" id="projectManagerTable">
                             <thead>
                                 <tr>
-                                    <th width="5%" data-field="id" data-align="right"></th>
+                                    <th width="5%" data-field="userAction" data-align="right" class="select_all_checkbox_container">
+                                        <input type="checkbox" id="selectAllFiles" style="display: none;"></input>
+                                    </th>
                                     <th width="55%" data-field="id" data-align="right" id="tableFileName">File Name</th>
                                     <th width="20%" data-field="date" data-align="center">Date Created</th>
                                     <th width="20%" data-field="status" data-align="left">Status</th>

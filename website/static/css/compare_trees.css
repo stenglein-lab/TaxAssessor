@@ -1,0 +1,20 @@
+.openFile {
+    border: #DCDCDC 1px solid;
+    border-radius: 5px;
+    padding: 10px;
+}
+
+.bar.positive {
+    fill: steelblue;
+    stroke: none;
+}
+
+.bar.negative {
+    fill: brown;
+    stroke: none;
+}
+
+.bar:hover {
+    stroke: black;
+}
+

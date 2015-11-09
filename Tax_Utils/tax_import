@@ -1,0 +1,66 @@
+#!/usr/bin/python
+import argparse
+import getpass
+import hashlib
+import os
+
+import TaxPy.inputFile_management.align_file_manager as TaxFileManager
+import TaxPy.db_management.db_wrap as TaxDb
+
+parser = argparse.ArgumentParser(description='Import files into TaxAssessor')
+parser.add_argument("--user","-u",nargs=1,
+                    help="Username associated with data",required=True)
+parser.add_argument("--files","-f",nargs="*",
+                    help="Path to each file to be imported",required=True)
+parser.add_argument("--noLCA",action="store_true",help="flag to turn off LCA")
+     
+
+def loginUser(username,password):
+    #retrieve salt to generate salt-hashed password
+    with TaxDb.openDb("TaxAssessor_Users") as db, TaxDb.cursor(db) as cur:
+        cmd = ('SELECT salt FROM users WHERE username=%s;')
+        cur.execute(cmd,username)
+        try:
+            salt = cur.fetchone()[0]
+            password = (hashlib.sha512(password+salt).hexdigest())
+        except TypeError:
+            print "Username or password incorrect"
+            exit()
+
+        #check salt-hashed password
+        cmd = ('SELECT username,firstName from users where username=%s and '
+               'password=%s;')
+        params = (username,password)
+        cur.execute(cmd,params)
+        row = cur.fetchone()
+        if row is not None:
+            loginInfo = { 'username':   row[0],
+                          'firstName':  row[1]}
+            print "Hello "+loginInfo['firstName']+"!"
+        else:
+            print "Invalid username or password"   
+
+def getLoadOptions(args):
+    loadOptions = {}
+    if args.noLCA:
+        loadOptions['useLca'] = False
+    else:
+        loadOptions['useLca'] = True
+    return loadOptions
+            
+        
+if __name__ == "__main__":
+    args = parser.parse_args()
+    userName = args.user[0]
+    loadOptions = getLoadOptions(args)
+    print "------------------------------"
+    password = getpass.getpass('Password for '+userName+":")
+    loginUser(userName,password)
+    for fileName in args.files:
+        print "------------------------------"
+        print os.path.basename(fileName)
+        fileInfo = { "filename":os.path.basename(fileName),
+                     "body":open(fileName,"r") }
+        alignFile = TaxFileManager.AlignFile(userName,fileInfo=fileInfo)
+        status = alignFile.importFile(loadOptions)
+        print fileName+": "+status

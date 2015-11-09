@@ -135,4 +135,9 @@ input[readonly] {
   }
 }
 
+.select_all_checkbox_container {
+    text-align: center; /* center checkbox horizontally */
+    vertical-align: middle; /* center checkbox vertically */
+    
+}
 

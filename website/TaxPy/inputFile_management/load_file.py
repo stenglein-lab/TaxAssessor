@@ -11,6 +11,7 @@ import TaxPy.data_processing.create_read_report as TaxReport
 import multiprocessing
 import threading
 import time
+import os
 from collections import Counter
 
 class InputFile():
@@ -22,7 +23,10 @@ class InputFile():
         self.loadOptions = loadOptions
         
     def genLine(self):
-        inFile = self.fileBody.splitlines()
+        try:
+            inFile = self.fileBody.splitlines()
+        except Exception:
+            inFile = self.fileBody
         for line in inFile:
             if line:
                 yield line
@@ -40,7 +44,7 @@ class InputFile():
         for delimiter in delimiters:
             #testLine = re.split(delimiter,firstLine)
             testLine = firstLine.split(delimiter)
-            try: 
+            try: #BLAST
                 gi = testLine[1].split("|")[1]
                 for index in xrange(2,12):
                     value = float(testLine[index])
@@ -51,6 +55,24 @@ class InputFile():
                 pass
             except ValueError:
                 pass
+            try: #SAM
+                if "@" in firstLine[0]:  #CONTAINS A HEADER
+                    if ("@HD" in testLine[0] and
+                        "VN"  in testLine[1]):
+                        return "SAM",delimiter
+                else:   #DOES NOT CONTAIN A HEADER
+                    gi = testLine[2].split("|")[1]
+                    value = int(testLine[1])
+                    value = int(testLine[3])
+                    value = int(testLine[4])
+                    value = int(testLine[7])
+                    value = int(testLine[8])
+                    return "SAM",delimiter
+            except IndexError:
+                pass
+            except ValueError:
+                pass
+                
   
         print "Could not determine file type of: "+self.fileName
         return None,None
@@ -173,20 +195,24 @@ class FileTemplate():
 class BlastFile(InputFile,FileTemplate):
     def __init__(self,InputFile):
         #Basic File Information
-        self.fileName    = InputFile.fileName
-        self.fileBody    = InputFile.fileBody
-        self.delimiter   = InputFile.delimiter
-        self.userName    = InputFile.userName
-        self.loadOptions = InputFile.loadOptions
-        #Information for building the taxonomy tree
-        self.readMinScore = {}
-        self.readMinGis = {}
-        self.readMinCount = {}
-        self.readMinLines = {}
-        self.giToTax = None
+        self.fileName      = InputFile.fileName
+        self.fileBody      = InputFile.fileBody
+        self.delimiter     = InputFile.delimiter
+        self.userName      = InputFile.userName
+        self.loadOptions   = InputFile.loadOptions
+        #Information for building the taxonomy tree & reports
+        self.readMinScore  = {}
+        self.readMinGis    = {}
+        self.readMinTaxIds = {}
+        self.readMinCount  = {}
+        self.readMinLines  = {}
+        self.taxCount      = {}
+        self.giToTax       = {}
+        self.gis           = set()
+        self.taxIds        = set()
         #Setting up database table
         self.checkForDb()
-        self.dbTableName  = self.getTableName()
+        self.dbTableName   = self.getTableName()
 
     def importData(self):
         """
@@ -196,74 +222,83 @@ class BlastFile(InputFile,FileTemplate):
         database import and the second consumes that data and places it into
         the database.
         """
-        gis = set()
-        taxIds = set()
-        taxCount = {}
-        giToTax = {}
-        giCount = {}
-        readMinScore = {}
-        readMinGis = {}
-        readMinCount = {}
-        readMinLines = {}
-        readMinTaxIds = {}
-        
-        #move through the file extracting the best alignment(s) for each read.
-        for line in self.genLine():
-            data = line.split(self.delimiter)
-            gi = int(data[1].split("|")[1])
-            readName = data[0]
-            eValue = data[-2]
-            
-            if ((readName not in readMinScore) or
-                    (eValue < readMinScore[readName])):
-                readMinScore[readName] = eValue
-                readMinGis[readName] = [gi]
-                readMinLines[readName] = [line]
-                readMinCount[readName] = 1
-            elif eValue == readMinScore[readName]:
-                readMinGis[readName].append(gi)
-                readMinLines[readName].append(line)
-                readMinCount[readName] += 1
+        def getBestAlignmentsPerRead(self):
+            #move through the file extracting the best alignment(s) for each read.
+            for line in self.genLine():
+                data = line.split(self.delimiter)
+                gi = int(data[1].split("|")[1])
+                readName = data[0]
+                eValue = data[-2]
+                
+                if ((readName not in self.readMinScore) or
+                        (eValue < self.readMinScore[readName])):
+                    self.readMinScore[readName] = eValue
+                    self.readMinGis[readName] = [gi]
+                    self.readMinLines[readName] = [line]
+                    self.readMinCount[readName] = 1
+                elif eValue == self.readMinScore[readName]:
+                    self.readMinGis[readName].append(gi)
+                    self.readMinLines[readName].append(line)
+                    self.readMinCount[readName] += 1        
+        def getTaxIdsFromGis(self):
+            #get the TaxIDs from the list of GIs.
+            gistring = "("+str(self.gis).lstrip("set([").rstrip("])")+")"
+            cmd = "SELECT gi,taxID from GiTax_NCBI WHERE gi in "+gistring
+            with TaxDb.openDbSS("TaxAssessor_Refs") as db, \
+                                   TaxDb.cursor(db) as cur:
+                cur.execute(cmd)
+                for data in cur:
+                    gi = int(data[0])
+                    taxId = int(data[1])
+                    if taxId == 0:
+                        taxId = -1
+                    self.taxIds.add(taxId)
+                    self.giToTax[gi] = taxId   
+        def assignTaxIdsToReads(self):
+            #get assign taxIds to each read
+            for readName in self.readMinGis:
+                for gi in self.readMinGis[readName]:
+                    try:
+                        if readName not in self.readMinTaxIds:
+                            self.readMinTaxIds[readName] = set([self.giToTax[gi]])
+                        else:
+                            self.readMinTaxIds[readName].add(self.giToTax[gi])
+                    except KeyError: #GI's taxId is unknown
+                        if readName not in self.readMinTaxIds:
+                            self.readMinTaxIds[readName] = set([-1])
+                        else:
+                            self.readMinTaxIds[readName].add(-1)        
+        def calcTaxIdContributionsFromReads(consensusTaxIds):
+            #count up the contributions from reads that belong to the same TaxID
+            if self.loadOptions["useLca"]:
+                self.taxIds = set()
+                for readName in consensusTaxIds:
+                    taxId = consensusTaxIds[readName]
+                    self.taxIds.add(taxId)
+                    if taxId in self.taxCount:
+                        self.taxCount[taxId] += 1
+                    else:
+                        self.taxCount[taxId] = 1
+            else:
+                for readName in self.readMinTaxIds:
+                    contribution = 1.0/self.readMinCount[readName]
+                    for taxId in self.readMinTaxIds[readName]:
+                        if taxId in self.taxCount:
+                            self.taxCount[taxId] += contribution
+                        else:
+                            self.taxCount[taxId] = contribution       
+       
+       
+        getBestAlignmentsPerRead(self)
     
         #consolidate the GIs and their contributions (normalized count)
-        for readName in readMinGis:
-            gis = gis.union(readMinGis[readName])
-            contribution = 1.0/readMinCount[readName]
-            for gi in readMinGis[readName]:
-                if gi in giCount:
-                    giCount[gi] += contribution
-                else:
-                    giCount[gi] = contribution
+        for readName in self.readMinGis:
+            self.gis = self.gis.union(self.readMinGis[readName])
         
-        #get the TaxIDs from the list of GIs.
-        gistring = "("+str(gis).lstrip("set([").rstrip("])")+")"
-        cmd = "SELECT gi,taxID from GiTax_NCBI WHERE gi in "+gistring
-        with TaxDb.openDbSS("TaxAssessor_Refs") as db, \
-                               TaxDb.cursor(db) as cur:
-            cur.execute(cmd)
-            for data in cur:
-                gi = int(data[0])
-                taxId = int(data[1])
-                if taxId == 0:
-                    taxId = -1
-                taxIds.add(taxId)
-                giToTax[gi] = taxId
-        
-        #get lowest common ancestor for each read
-        for readName in readMinGis:
-            for gi in readMinGis[readName]:
-                try:
-                    if readName not in readMinTaxIds:
-                        readMinTaxIds[readName] = set([giToTax[gi]])
-                    else:
-                        readMinTaxIds[readName].add(giToTax[gi])
-                except KeyError: #GI's taxId is unknown
-                    if readName not in readMinTaxIds:
-                        readMinTaxIds[readName] = set([-1])
-                    else:
-                        readMinTaxIds[readName].add(-1)
-
-        consensusTaxIds = self.getLowestCommonAncestor(readMinTaxIds,taxIds)
+        getTaxIdsFromGis(self)
+        assignTaxIdsToReads(self)
+        consensusTaxIds = self.getLowestCommonAncestor(self.readMinTaxIds,
+                                                       self.taxIds)
               
         #begin processes that prepare the data and perform the database import
         parent,child = multiprocessing.Pipe()
@@ -271,33 +306,19 @@ class BlastFile(InputFile,FileTemplate):
         p.append(multiprocessing.Process(target=self.consumeDumpIntoDb,
                                          args=(child,)))
         p.append(multiprocessing.Process(target=self.produceDumpForDb,
-                                         args=(readMinGis,readMinLines,
-                                               readMinScore,readMinCount,
-                                               giToTax,parent,consensusTaxIds)))
+                                         args=(self.readMinGis,
+                                               self.readMinLines,
+                                               self.readMinScore,
+                                               self.readMinCount,
+                                               self.giToTax,
+                                               consensusTaxIds,
+                                               parent)))
         for process in p:
             process.start()
-        
-        #count up the contributions from reads that belong to the same TaxID
-        taxIds = set()
-        for readName in consensusTaxIds:
-            taxId = consensusTaxIds[readName]
-            taxIds.add(taxId)
-            if taxId in taxCount:
-                taxCount[taxId] += 1
-            else:
-                taxCount[taxId] = 1
-        
-        #begin process to generate read report
-        report = TaxReport.ReadReport(readMinGis,readMinScore,
-                                      readMinCount,taxCount,gis) 
-        readReport = report.createReport()      
-        
-        self.giToTax = giToTax
-        
-        for process in p:
-            process.join()
-        
-        return taxIds,taxCount,readReport
+            
+        calcTaxIdContributionsFromReads(consensusTaxIds)
+    
+        return p
         
     def createDbTable(self):
         with TaxDb.openDb("TaxAssessor_Alignments") as db, \
@@ -309,12 +330,13 @@ class BlastFile(InputFile,FileTemplate):
                                        consensusTaxId INT(11) NOT NULL,
                                        readLine     VARCHAR(210) NOT NULL,
                                        INDEX (consensusTaxId),
+                                       INDEX (taxId),
                                        INDEX (eValue));"""
                                        % (self.dbTableName))
             cur.execute(cmd)
          
     def produceDumpForDb(self,readMinGis,readMinLines,readMinScore,
-                        readMinCount,giToTax,conn,readMinLCATaxIds):
+                        readMinCount,giToTax,readMinLCATaxIds,conn):
         countDump = 0
         dump = []
         for readName in readMinGis:
@@ -360,22 +382,232 @@ class BlastFile(InputFile,FileTemplate):
                     cur.execute(dump)
                     db.commit()
 
+class SamFile(InputFile,FileTemplate):
+    def __init__(self,InputFile):
+        #Basic File Information
+        self.fileName    = InputFile.fileName
+        self.fileBody    = InputFile.fileBody
+        self.delimiter   = InputFile.delimiter
+        self.userName    = InputFile.userName
+        self.loadOptions = InputFile.loadOptions
+        #Information for building the taxonomy tree & reports
+        self.readMinScore  = {}
+        self.readMinGis    = {}
+        self.readMinTaxIds = {}
+        self.readMinCount  = {}
+        self.readMinLines  = {}
+        self.taxCount      = {}
+        self.giToTax       = {}
+        self.gis           = set()
+        self.taxIds        = set()
+        #Setting up database table
+        self.checkForDb()
+        self.dbTableName   = self.getTableName()
+        
+    def importData(self):
+        """
+        A function that reads the uploaded file and extracts the highest 
+        alignment(s) for each read.  Once the highest alignments have been
+        obtained, two processes are started.  The first preps the data for the
+        database import and the second consumes that data and places it into
+        the database.
+        """    
+        def getBestAlignmentsPerRead(self):
+            #move through the file extracting the best alignment(s) for each read.
+            for line in self.genLine():
+                if "@" in line[0]: #skip if header section
+                    continue
+                else:
+                    data = line.split(self.delimiter)
+                    try:
+                        gi = int(data[2].split("|")[1])
+                    except IndexError:
+                        continue
+                    readName = data[0]
+                    mapQ = int(data[4])
+                    if ((readName not in self.readMinScore) or
+                            (mapQ < self.readMinScore[readName])):
+                        self.readMinScore[readName] = mapQ
+                        self.readMinGis[readName] = [gi]
+                        self.readMinLines[readName] = [line]
+                        self.readMinCount[readName] = 1
+                    elif mapQ == self.readMinScore[readName]:
+                        self.readMinGis[readName].append(gi)
+                        self.readMinLines[readName].append(line)
+                        self.readMinCount[readName] += 1    
+        def getTaxIdsFromGis(self):
+            #get the TaxIDs from the list of GIs.
+            gistring = "("+str(self.gis).lstrip("set([").rstrip("])")+")"
+            cmd = "SELECT gi,taxID from GiTax_NCBI WHERE gi in "+gistring
+            with TaxDb.openDbSS("TaxAssessor_Refs") as db, \
+                                   TaxDb.cursor(db) as cur:
+                cur.execute(cmd)
+                for data in cur:
+                    gi = int(data[0])
+                    taxId = int(data[1])
+                    if taxId == 0:
+                        taxId = -1
+                    self.taxIds.add(taxId)
+                    self.giToTax[gi] = taxId   
+        def assignTaxIdsToReads(self):
+            #get assign taxIds to each read
+            for readName in self.readMinGis:
+                for gi in self.readMinGis[readName]:
+                    try:
+                        if readName not in self.readMinTaxIds:
+                            self.readMinTaxIds[readName] = set([self.giToTax[gi]])
+                        else:
+                            self.readMinTaxIds[readName].add(self.giToTax[gi])
+                    except KeyError: #GI's taxId is unknown
+                        if readName not in self.readMinTaxIds:
+                            self.readMinTaxIds[readName] = set([-1])
+                        else:
+                            self.readMinTaxIds[readName].add(-1)        
+        def calcTaxIdContributionsFromReads(consensusTaxIds):
+            #count up the contributions from reads that belong to the same TaxID
+            if self.loadOptions["useLca"]:
+                self.taxIds = set()
+                for readName in consensusTaxIds:
+                    taxId = consensusTaxIds[readName]
+                    self.taxIds.add(taxId)
+                    if taxId in self.taxCount:
+                        self.taxCount[taxId] += 1
+                    else:
+                        self.taxCount[taxId] = 1
+            else:
+                for readName in self.readMinTaxIds:
+                    contribution = 1.0/self.readMinCount[readName]
+                    for taxId in self.readMinTaxIds[readName]:
+                        if taxId in self.taxCount:
+                            self.taxCount[taxId] += contribution
+                        else:
+                            self.taxCount[taxId] = contribution    
+
+        getBestAlignmentsPerRead(self)
+        #consolidate the GIs and their contributions (normalized count)
+        for readName in self.readMinGis:
+            self.gis = self.gis.union(self.readMinGis[readName])
+        getTaxIdsFromGis(self)
+        assignTaxIdsToReads(self)
+        consensusTaxIds = self.getLowestCommonAncestor(self.readMinTaxIds,
+                                                       self.taxIds)    
+        #begin processes that prepare the data and perform the database import
+        parent,child = multiprocessing.Pipe()
+        p=[]
+        p.append(multiprocessing.Process(target=self.consumeDumpIntoDb,
+                                         args=(child,)))
+        p.append(multiprocessing.Process(target=self.produceDumpForDb,
+                                         args=(self.readMinGis,
+                                               self.readMinLines,
+                                               self.readMinScore,
+                                               self.readMinCount,
+                                               self.giToTax,
+                                               consensusTaxIds,
+                                               parent)))
+        for process in p:
+            process.start()
+            
+        calcTaxIdContributionsFromReads(consensusTaxIds)
+    
+        return p
+        
+    def createDbTable(self):
+        with TaxDb.openDb("TaxAssessor_Alignments") as db, \
+                                   TaxDb.cursor(db) as cur:
+            cmd = ("""CREATE TABLE %s (readName     VARCHAR(50) NOT NULL, 
+                                       taxId        INT(11) NOT NULL,
+                                       count        FLOAT(11) NOT NULL,
+                                       mapQ         SMALLINT NOT NULL,
+                                       consensusTaxId INT(11) NOT NULL,
+                                       readLine     VARCHAR(500) NOT NULL,
+                                       INDEX (consensusTaxId),
+                                       INDEX (taxId),
+                                       INDEX (mapQ));"""
+                                       % (self.dbTableName))
+            cur.execute(cmd)
+            
+    def produceDumpForDb(self,readMinGis,readMinLines,readMinScore,
+                        readMinCount,giToTax,readMinLCATaxIds,conn):
+        countDump = 0
+        dump = []
+        for readName in readMinGis:
+            eValue = readMinScore[readName]
+            count = readMinCount[readName]
+            consensusTaxId = readMinLCATaxIds[readName]
+            for index,gi in enumerate(readMinGis[readName]):
+                alignLine = readMinLines[readName][index]
+                try:
+                    taxId = giToTax[gi]
+                except Exception:
+                    continue
+                countDump += 1
+                dump.append((readName,taxId,count,eValue,
+                             consensusTaxId,alignLine))
+                if countDump % 10000 == 0:
+                    dump = str(dump).rstrip("]").lstrip("[")
+                    conn.send(dump)
+                    dump = []
+        if len(dump) > 0:
+            dump = str(dump).rstrip("]").lstrip("[")
+            conn.send(dump)
+        conn.send(None)
+        conn.close()
+
+    def consumeDumpIntoDb(self,conn):
+        self.createDbTable()
+        with TaxDb.openDb("TaxAssessor_Alignments") as db, \
+                                   TaxDb.cursor(db) as cur:   
+            cmd = ("""INSERT INTO %s (readName,taxId,count,mapQ,
+                      consensusTaxId,readLine) VALUES """ % (self.dbTableName))
+            cur.execute("START TRANSACTION;")
+            cur.execute("SET autocommit=0;")
+            dump = []
+            while True:
+                dump = conn.recv()
+                if dump == None:
+                    print "Finished DB Loading"
+                    conn.close()
+                    return
+                else:
+                    dump = cmd + dump + ";"
+                    cur.execute(dump)
+                    db.commit()
+                                                       
+
+                                                       
+        
+                    
 def loadFile(fileName,fileBody,userName,loadOptions):
     inputFile = InputFile(fileName,fileBody,userName,loadOptions)
     
     if inputFile.fileType == "BLAST":
         inputFile = BlastFile(inputFile)
-        taxIds,taxCount,readReport = inputFile.importData()
-        taxTree = TaxTree.createTree(taxIds,taxCount)
-        with open("uploads/"+userName+"/"+fileName+"_tree.json","w") as outFile:
-            outFile.write(taxTree)
-        with open("uploads/"+userName+"/"+fileName+"_report.json","w") as outFile:
-            outFile.write(readReport)
-        return
+    elif inputFile.fileType == "SAM":
+        inputFile = SamFile(inputFile)
+        print "SAM filetype recognized"
     else:
         raise Exception("Error: Unknown file type")
         return
-
+    #Once the filetype is set, process the data
+    loadIntoDbProc = inputFile.importData()
+    taxTree = TaxTree.createTree(inputFile.taxIds,inputFile.taxCount)
+    #create the reports
+    report = TaxReport.ReadReport(inputFile.readMinGis,inputFile.readMinScore,
+                                  inputFile.readMinCount,inputFile.taxCount,
+                                  inputFile.gis) 
+    readReport = report.createReport()
+    #Write tree and reports to files
+    this_dir = os.path.dirname(__file__)
+    with open(this_dir+"/../../uploads/"+userName+"/"+fileName+"_tree.json","w") as outFile:
+        outFile.write(taxTree)
+    with open(this_dir+"/../../uploads/"+userName+"/"+fileName+"_report.json","w") as outFile:
+        outFile.write(readReport)
+        
+    #Wait for DB loading to finish
+    for process in loadIntoDbProc:
+        process.join()
+        
+    return
 
 
 

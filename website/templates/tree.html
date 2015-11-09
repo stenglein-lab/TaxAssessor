@@ -1,4 +1,4 @@
-{% extends "logged_in_with_file_open.html" %}
+{% extends "file_open.html" %}
 
     {% block data_head %}
         <link href="{{ static_url("css/testsvg.css") }}" rel="stylesheet">
@@ -16,6 +16,7 @@
                 {% raw xsrf_form_html() %}
                 <input type="text" name="taxId" id="inspectTaxIdInput" style="display:none;">
                 <input type="text" name="taxName" id="inspectTaxNameInput" style="display:none;">
+                <input type="text" name="offset" id="inspectQueryOffset" style="display:none;" value="0">
             </form>
             <div class="col-lg-12 col-md-12" id="chart">
             </div>
@@ -65,6 +66,10 @@
                 <div class="inspect-container" id="inspect-container" style="display:none">
                     <h3 id="inspected-taxId">Inspected TaxId</h3>
                     <h3 id="inspected-status"><small id="inspected-status-small"></small></h3>
+                    <span id="offset_buttons" style="display: none;">
+                        <button id="query_offset_lower" class="glyphicon glyphicon-menu-left"></button>
+                        <button id="query_offset_raise" class="glyphicon glyphicon-menu-right"></button>
+                    </span>
                     <a type="button" class="close glyphicon glyphicon-remove" id="close-inspect" style="color:#000" href="#"></a>
                     <hr>
                     <p id="inspect-results"></p>

@@ -57,18 +57,20 @@ def getReadLines(children,fileId):
     count = 0
     with TaxDb.openDbSS("TaxAssessor_Alignments") as db, \
                                  TaxDb.cursor(db) as cur:
-        cmd = "SELECT readLine from "+fileId+" where taxId in "
-        children = "("+str(children).lstrip("[").rstrip("]")+") LIMIT 1000"
+                                 
+        cmd = "SELECT COUNT(*) FROM "+fileId+" WHERE taxId IN "
+        children = "("+str(children).lstrip("[").rstrip("]")+")"
         cmd += children
         cur.execute(cmd)
+        nRows = cur.fetchall()[0][0]
+                                                                  
+        cmd = "SELECT readLine FROM "+fileId+" WHERE taxId IN "
+        cmd += children + " LIMIT 1000;"
+        cur.execute(cmd)
         for line in cur:
-            count += 1
             readLines.append(line[0])
-            if count == 1000:
-                status = "Too many results, showing first 1000"
-                return readLines,status
-    status = str(count)+" alignments"
-    return readLines,status
+            
+    return readLines,str(nRows)
 
 
 

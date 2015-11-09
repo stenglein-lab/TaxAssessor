@@ -1,9 +1,20 @@
-
+var inspectOffset = 0;
 //Functions used for inspecting individual nodes
 function CreateInspectTable (json_data) {
     $('#inspect-container').show();
     $('#inspected-taxId').html(json_data.name);
-    $('#inspected-status-small').html(json_data.status);   
+    var nRows = json_data.status,
+        lowOffset = inspectOffset + 1,
+        highOffset = inspectOffset + 1000;
+    if (nRows > 1000) {
+        $('#offset_buttons').show();
+        $('#inspected-status-small').html("Showing "+lowOffset+"-"+highOffset+" of "+nRows+" alignments"); 
+        
+    } else {
+        $('#offset_buttons').hide();
+        $('#inspected-status-small').html("Showing "+nRows+" alignments");
+    }
+        
     var myTable = "<div class='table-responsive'><table class='table table-striped inspect-table'><thead><tr><th>queryId</th><th>subjectId</th><th>%Ident</th><th>AlignLen</th><th>nMisMatch</th><th>nGapOpen</th><th>qStart</th><th>qEnd</th><th>subStart</th><th>subEnd</th><th>eVal</th><th>bitScore</th></tr></thead><tbody>"
     var data;
     for (var i = 0; i < json_data.info.length; i++) {
@@ -19,6 +30,7 @@ function CreateInspectTable (json_data) {
 }
 
 $('#inspectForm').on('submit', function( event) {
+    inspectOffset = 0;
     var formData = new FormData($(this)[0]);
     event.preventDefault();
     $.ajax({

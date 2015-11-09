@@ -10,6 +10,8 @@ from tornado.web import StaticFileHandler
 
 define("port", default="8000")
 
+this_dir = os.path.dirname(__file__)
+
 def main():
 
     tornado.options.parse_command_line()

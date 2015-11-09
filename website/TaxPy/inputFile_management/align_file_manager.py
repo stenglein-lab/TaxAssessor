@@ -18,7 +18,7 @@ def blocking_task(fileInfo,userName):
 class AlignFile():
     def __init__(self,userName,fileName=None,fileInfo=None):
         self.fileInfo = fileInfo
-        if fileInfo == None:
+        if fileInfo == None:  #if deleting a file
             self.fileName = fileName
         else:
             self.fileName = fileInfo['filename']
@@ -83,7 +83,7 @@ class AlignFile():
             updateDbEntryStatus(self,"Ready")           
         except Exception,e:
             print e
-            deleteDbEntry(self)
+            self.deleteRecords()
             status = str(e)
         return status
                 
