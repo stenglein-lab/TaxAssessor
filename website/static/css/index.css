@@ -115,7 +115,7 @@ input[readonly] {
     padding: 15px;
 }
 
-.openFile {
+.open-file {
     border: #DCDCDC 1px solid;
     border-radius: 5px;
     padding: 10px;

@@ -19,7 +19,7 @@
                         <th>Value</th>
                     </tr>
                 </thead>
-                <tbody id="align_table_data">
+                <tbody id="align-table-data">
                 </tbody>
             </table>
         </div>
@@ -36,5 +36,6 @@
     {% end %} 
     
     {% block data_scripts %}
+        <script src="{{ static_url('js/tax_namespace.js') }}"></script>
         <script src="{{ static_url('js/report.js') }}"></script>
     {% end %}
