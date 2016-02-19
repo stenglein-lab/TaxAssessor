@@ -536,11 +536,32 @@ $('#manageTabs a[href="#Upload"]').click(function (e) {
         var errorMessage = "<div class='alert alert-danger alert-dismissible'><button type='button' class='close' data-dismiss='alert' aria-label='Close'><span aria-hidden='true'>&times;</span></button><strong>Error Uploading File: "+fileName+"</strong><br>"+error+"</div>";
         $("#uploadErrorMessage").append(errorMessage);
     }
-    $('#upload_options_dropdown').bind('click', function (e) { e.stopPropagation() })
+    $('#clear_upload').click( function(event) {
+        $('#uploadOptions').fadeOut();
+        $('#upload_form')[0].reset();
+        $('#upload_button').addClass('disabled');
+    });
+    $('#fileFormat').change( function(event) {
+        if ($('#fileFormat').val() == "Custom") {
+            $('#customFileFormatRow').fadeIn();
+        } else {
+            $('#customFileFormatRow').fadeOut();
+        }
+    });
+    $('#addDelimiter').click( function(event) {
+        $('#additionalDelimiters').append('<select class="form-control delimiter-select" ></label><option>Tab</option><option>Space</option><option>Custom</option></select>');
+    });
+    $('#removeDelimiter').click( function(event) {
+        $('#additionalDelimiters select:last-child').remove();
+    });
 })
 
 $('#manageTabs a[href!="#Upload"]').click(function (e) {
     $('#upload_button').unbind("click");
+    $('#clear_upload').unbind("click");
+    $('#fileFormat').unbind();
+    $('#addDelimiter').unbind();
+    $('#removeDelimiter').unbind();
 })
 
 $('#manageTabs a[href="#Delete"]').click(function (e) {
@@ -636,6 +657,8 @@ $(document).ready( function() {
         
         var input = $(this).parents('.input-group').find(':text'),
             log = numFiles > 1 ? numFiles + ' files selected' : label;
+            $('#uploadOptions').fadeIn();
+            $('#upload_button').removeClass("disabled");
         if( input.length ) {
             input.val(log);
         } else {

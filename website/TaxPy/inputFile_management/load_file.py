@@ -111,8 +111,8 @@ class FileTemplate():
         
     def getLowestCommonAncestor(self,readMinTaxIds,taxIds):
         taxIds = set(taxIds)  #hacky way of getting around mutable objects being modified by functions
+        
         #get all included taxIds (in the tree)
-
         newTaxIds = "("+str(taxIds).lstrip("set([").rstrip("])")+")"
         with TaxDb.openDb("TaxAssessor_Refs") as db, TaxDb.cursor(db) as cur:
             allTaxIds = False
@@ -233,13 +233,15 @@ class BlastFile(InputFile,FileTemplate):
                 if ((readName not in self.readMinScore) or
                         (eValue < self.readMinScore[readName])):
                     self.readMinScore[readName] = eValue
-                    self.readMinGis[readName] = [gi]
+                    self.readMinGis[readName] = set([gi])
                     self.readMinLines[readName] = [line]
                     self.readMinCount[readName] = 1
                 elif eValue == self.readMinScore[readName]:
-                    self.readMinGis[readName].append(gi)
                     self.readMinLines[readName].append(line)
-                    self.readMinCount[readName] += 1        
+                    if gi not in self.readMinGis[readName]:
+                        self.readMinCount[readName] += 1  
+                        self.readMinGis[readName].add(gi)
+      
         def getTaxIdsFromGis(self):
             #get the TaxIDs from the list of GIs.
             gistring = "("+str(self.gis).lstrip("set([").rstrip("])")+")"
@@ -267,7 +269,8 @@ class BlastFile(InputFile,FileTemplate):
                         if readName not in self.readMinTaxIds:
                             self.readMinTaxIds[readName] = set([-1])
                         else:
-                            self.readMinTaxIds[readName].add(-1)        
+                            self.readMinTaxIds[readName].add(-1)      
+            print self.readMinTaxIds  
         def calcTaxIdContributionsFromReads(consensusTaxIds):
             #count up the contributions from reads that belong to the same TaxID
             if self.loadOptions["useLca"]:
@@ -286,7 +289,8 @@ class BlastFile(InputFile,FileTemplate):
                         if taxId in self.taxCount:
                             self.taxCount[taxId] += contribution
                         else:
-                            self.taxCount[taxId] = contribution       
+                            self.taxCount[taxId] = contribution
+            print self.taxCount    
        
        
         getBestAlignmentsPerRead(self)
@@ -337,50 +341,57 @@ class BlastFile(InputFile,FileTemplate):
          
     def produceDumpForDb(self,readMinGis,readMinLines,readMinScore,
                         readMinCount,giToTax,readMinLCATaxIds,conn):
-        countDump = 0
-        dump = []
-        for readName in readMinGis:
-            eValue = readMinScore[readName]
-            count = readMinCount[readName]
-            consensusTaxId = readMinLCATaxIds[readName]
-            for index,gi in enumerate(readMinGis[readName]):
-                alignLine = readMinLines[readName][index]
-                try:
-                    taxId = giToTax[gi]
-                except Exception:
-                    continue
-                countDump += 1
-                dump.append((readName,taxId,count,eValue,
-                             consensusTaxId,alignLine))
-                if countDump % 10000 == 0:
-                    dump = str(dump).rstrip("]").lstrip("[")
-                    conn.send(dump)
-                    dump = []
-        if len(dump) > 0:
-            dump = str(dump).rstrip("]").lstrip("[")
-            conn.send(dump)
-        conn.send(None)
-        conn.close()
+        try:
+            countDump = 0
+            dump = []
+            for readName in readMinGis:
+                eValue = readMinScore[readName]
+                count = readMinCount[readName]
+                consensusTaxId = readMinLCATaxIds[readName]
+                for index,gi in enumerate(readMinGis[readName]):
+                    alignLine = readMinLines[readName][index]
+                    try:
+                        taxId = giToTax[gi]
+                    except Exception:
+                        continue
+                    countDump += 1
+                    dump.append((readName,taxId,count,eValue,
+                                 consensusTaxId,alignLine))
+                    if countDump % 10000 == 0:
+                        dump = str(dump).rstrip("]").lstrip("[")
+                        conn.send(dump)
+                        dump = []
+            if len(dump) > 0:
+                dump = str(dump).rstrip("]").lstrip("[")
+                conn.send(dump)
+            conn.send(None)
+            conn.close()
+        except Exception:
+            conn.close()
 
     def consumeDumpIntoDb(self,conn):
-        self.createDbTable()
-        with TaxDb.openDb("TaxAssessor_Alignments") as db, \
-                                   TaxDb.cursor(db) as cur:   
-            cmd = ("""INSERT INTO %s (readName,taxId,count,eValue,
-                      consensusTaxId,readLine) VALUES """ % (self.dbTableName))
-            cur.execute("START TRANSACTION;")
-            cur.execute("SET autocommit=0;")
-            dump = []
-            while True:
-                dump = conn.recv()
-                if dump == None:
-                    print "Finished DB Loading"
-                    conn.close()
-                    return
-                else:
-                    dump = cmd + dump + ";"
-                    cur.execute(dump)
-                    db.commit()
+        try:
+            self.createDbTable()
+            with TaxDb.openDb("TaxAssessor_Alignments") as db, \
+                                       TaxDb.cursor(db) as cur:   
+                cmd = ("""INSERT INTO %s (readName,taxId,count,eValue,
+                          consensusTaxId,readLine) VALUES """ % (self.dbTableName))
+                cur.execute("START TRANSACTION;")
+                cur.execute("SET autocommit=0;")
+                dump = []
+                while True:
+                    dump = conn.recv()
+                    if dump == None:
+                        print "Finished DB Loading"
+                        conn.close()
+                        return
+                    else:
+                        dump = cmd + dump + ";"
+                        cur.execute(dump)
+                        db.commit()
+        except Exception:
+            conn.close()
+            return
 
 class SamFile(InputFile,FileTemplate):
     def __init__(self,InputFile):
@@ -426,7 +437,7 @@ class SamFile(InputFile,FileTemplate):
                     readName = data[0]
                     mapQ = int(data[4])
                     if ((readName not in self.readMinScore) or
-                            (mapQ < self.readMinScore[readName])):
+                            (mapQ > self.readMinScore[readName])):
                         self.readMinScore[readName] = mapQ
                         self.readMinGis[readName] = [gi]
                         self.readMinLines[readName] = [line]
@@ -588,20 +599,25 @@ def loadFile(fileName,fileBody,userName,loadOptions):
     else:
         raise Exception("Error: Unknown file type")
         return
-    #Once the filetype is set, process the data
     loadIntoDbProc = inputFile.importData()
-    taxTree = TaxTree.createTree(inputFile.taxIds,inputFile.taxCount)
-    #create the reports
-    report = TaxReport.ReadReport(inputFile.readMinGis,inputFile.readMinScore,
-                                  inputFile.readMinCount,inputFile.taxCount,
-                                  inputFile.gis) 
-    readReport = report.createReport()
-    #Write tree and reports to files
-    this_dir = os.path.dirname(__file__)
-    with open(this_dir+"/../../uploads/"+userName+"/"+fileName+"_tree.json","w") as outFile:
-        outFile.write(taxTree)
-    with open(this_dir+"/../../uploads/"+userName+"/"+fileName+"_report.json","w") as outFile:
-        outFile.write(readReport)
+    try:
+        #Once the filetype is set, process the data
+        taxTree = TaxTree.createTree(inputFile.taxIds,inputFile.taxCount)
+        #create the reports
+        report = TaxReport.ReadReport(inputFile.readMinGis,inputFile.readMinScore,
+                                      inputFile.readMinCount,inputFile.taxCount,
+                                      inputFile.gis) 
+        readReport = report.createReport()
+        #Write tree and reports to files
+        this_dir = os.path.dirname(__file__)
+        with open(this_dir+"/../../uploads/"+userName+"/"+fileName+"_tree.json","w") as outFile:
+            outFile.write(taxTree)
+        with open(this_dir+"/../../uploads/"+userName+"/"+fileName+"_report.json","w") as outFile:
+            outFile.write(readReport)
+    except Exception:
+        for process in loadIntoDbProc:
+            process.join()     
+            raise Exception   
         
     #Wait for DB loading to finish
     for process in loadIntoDbProc:

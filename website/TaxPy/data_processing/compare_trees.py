@@ -135,7 +135,9 @@ def compareData(set1,set2,userName):
     finalFlatTree.combineTrees()
     
     #Perform stats
-    if (set1Data.nSamples > 3) and (set2Data.nSamples > 3): #t-test
+    set1Available = True if (set1Data.nSamples > 3) else False
+    set2Available = True if (set2Data.nSamples > 3) else False
+    if set1Available and set2Available: #t-test
         for taxId in finalFlatTree.fullFlatTree:
             if taxId not in set1Data.combinedFlatTree:
                 set1Sizes = [0]*set1Data.nSamples
@@ -152,7 +154,7 @@ def compareData(set1,set2,userName):
 
             finalFlatTree.fullFlatTree[taxId]["size"] = results[1]
         finalFlatTree.fullTree = finalFlatTree.reformTreeTTest()
-    elif (set1Data.nSamples > 3) or (set2Data.nSamples > 3): #z-score
+    elif set1Available != set2Available: #xor, z-score
         if set1Data.nSamples > 0:
             setData = set1Data
         elif set2Data.nSamples > 0:
@@ -168,6 +170,8 @@ def compareData(set1,set2,userName):
             finalFlatTree.fullFlatTree[taxId]["zscores"] = {}
             for index,result in enumerate(results):
                 finalFlatTree.fullFlatTree[taxId]["zscores"][setData.samples[index].fileName] = results[index]
+                if taxId in [10239,439488,35278,11050]:
+                    print taxId, setSizes[index], results[index]
             finalFlatTree.fullFlatTree[taxId]["size"] = max(results)
         finalFlatTree.fullTree = finalFlatTree.reformTreeZScore()
     return json.dumps(finalFlatTree.fullTree,sort_keys=False)

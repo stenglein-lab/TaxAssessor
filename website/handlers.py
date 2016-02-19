@@ -184,7 +184,8 @@ class Login(BaseHandler):
                 loginInfo['password'] = (hashlib.sha512(loginInfo['password']+
                                          salt).hexdigest())
             except TypeError:
-                self.render("login.html",error="Invalid username or password")
+                self.render("login.html",error="Invalid username or password",
+                            user=None)
                 return
 
             #check salt-hashed password
@@ -201,7 +202,8 @@ class Login(BaseHandler):
                 #self.set_fileListing_cookie(row[0])
                 self.redirect(r"/")
             else:
-                self.render("login.html",error="Invalid username or password")
+                self.render("login.html",error="Invalid username or password",
+                            user=None)
 
 class Register(Login):
     """
@@ -314,6 +316,7 @@ class Upload(BaseHandler):
             
     def getLoadOptions(self):
         options = {}
+        print "hi"
         options["useLca"] = ("True" == self.get_argument('useLca'))
         return options
             
@@ -446,6 +449,8 @@ class ServeReports(BaseHandler):
         try:
             userName = self.get_current_username()
             currentFile = self.get_current_fileName()
+            print currentFile
+            print path
             if currentFile:
                 self.render(path+".html",
                             userName    = userName,

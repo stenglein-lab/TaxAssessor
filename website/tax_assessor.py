@@ -34,6 +34,7 @@ def main():
             (r'/saveSet',   handlers.SaveSet),
             (r'/getSet',    handlers.GetSetList),
             (r'/compare',   handlers.CompareSets),
+            (r'/(favicon.ico)', tornado.web.StaticFileHandler, {"path": ""}),
             (r'/(.+)',      handlers.ServeReports)
     ]
 

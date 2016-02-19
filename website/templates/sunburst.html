@@ -1,0 +1,93 @@
+{% extends "file_open.html" %}
+
+  {% block data_head %}
+    <link href="{{ static_url("css/sunburst.css") }}" rel="stylesheet">
+    <link href="{{ static_url("css/d3-context-menu.css") }}" rel="stylesheet">
+  {% end %}
+
+  {% block data_navbar %}
+    <li><a href="#" id="vis_options">Visualization Options</a></li>
+  {% end %}
+
+
+  {% block data_body %}
+    <div class="row">
+      <form enctype="multipart/form-data" action="/inspect" method="post" id="inspectForm">
+        {% raw xsrf_form_html() %}
+        <input type="text" name="taxId" id="inspectTaxIdInput" style="display:none;">
+        <input type="text" name="taxName" id="inspectTaxNameInput" style="display:none;">
+        <input type="text" name="offset" id="inspectQueryOffset" style="display:none;" value="0">
+      </form>
+      <div class="col-lg-12 col-md-12" id="chart">
+      </div>
+      <div class="col-lg-2 col-md-2 col-lg-pull-10 col-md-pull-10" id="vis_options_sidebar" style="display: none;">
+        <h4>Modify View</h4>
+        <div class="well">
+          <h5>Node Scale</h5>
+          <div class="radio">
+            <label>
+              <input type="radio" name="circleScaleRadios" id="circleLogRadius" value="log" checked>Log
+            </label>
+          </div>
+          <div class="radio">
+            <label>
+              <input type="radio" name="circleScaleRadios" id="circleLinearRadius" value="linear">Linear
+            </label>
+          </div>
+          <hr style="border-color: #A9A9A9;">
+          <div class="text-center">
+            <button class="btn btn-primary btn-responsive" id="reset_SVG">Reset View</button>
+          </div>
+        </div>
+        <h4>Filters</h4>
+        <div class="well">
+          <form>
+            <h5>e-Value</h5>
+            <div class="input-group">
+              <input type="text" class="form-control" placeholder="ex 1e-5">
+              <span class="input-group-btn">
+              <button class="btn btn-primary" type="button">Go</button>
+              </span>
+            </div>
+          </form>
+          <hr style="border-color: #A9A9A9;">
+          <h5>Count</h5>
+          <div class="input-group">
+            <input type="text" class="form-control" id="set_count_value" placeholder="1">
+            <span class="input-group-btn">
+            <button class="btn btn-primary" id="set_count_button" type="button">Go</button>
+            </span>
+          </div>          
+        </div>
+      </div>
+    </div>
+    <div class="row">
+      <div class="col-lg-12 col-md-12">
+        <div class="inspect-container" id="inspect-container" style="display:none">
+          <h3 id="inspected-taxId">Inspected TaxId</h3>
+          <h3 id="inspected-status"><small id="inspected-status-small"></small></h3>
+          <span id="offset_buttons" style="display: none;">
+            <button id="query_offset_lower" class="glyphicon glyphicon-menu-left"></button>
+            <button id="query_offset_raise" class="glyphicon glyphicon-menu-right"></button>
+          </span>
+          <a type="button" class="close glyphicon glyphicon-remove" id="close-inspect" style="color:#000" href="#"></a>
+          <hr>
+          <p id="inspect-results"></p>
+        </div>
+      </div>
+    </div>
+    <div class="row">
+      <div class="col-lg-12 col-md-12">
+        <br><br><br>
+      </div>
+    </div>
+  {% end %}
+
+  {% block data_scripts %}
+    <script src="{{ static_url('js/tree_options.js') }}"></script>
+    {% if openFile != None %}
+      <script src="{{ static_url('js/tax_namespace.js') }}"></script>
+      <script src="{{ static_url('js/d3-context-menu.js') }}"></script>
+      <script src="{{ static_url('js/SunburstSVG.js') }}"></script>
+    {% end %}
+  {% end %}

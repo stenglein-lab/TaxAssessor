@@ -122,36 +122,99 @@
                         <form enctype="multipart/form-data" action="/upload" method="post" id="upload_form" class="form-manage">
                             {% raw xsrf_form_html() %}
                             <br>
-                            <div class="input-group" id="upload-group">
-                                <span class="input-group-btn">
-                                    <span class="btn btn-primary btn-file">
-                                        Browse&hellip; <input type="file" name="upFile" id="upload_file" multiple/>
-                                </span>
-                                    </span>
-                                <input type="text" class="form-control" id="upload_name" readonly>
-                                <div class="input-group-btn">
-                                
-                                
-                                    <button type="button" class="btn dropdown-toggle keepopen" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                                        <span class="glyphicon glyphicon-cog"></span>
-                                        <span class="caret"></span>
-                                        <span class="sr-only">Toggle Dropdown</span>
-                                    </button>
-                                    <ul class="dropdown-menu keepopen" id="upload_options_dropdown">
-                                        <li>
-                                            <a href="#">
-                                                <label for="useLca">
-                                                    <input type="hidden" value="False" name="useLca" >
-                                                    <input type="checkbox" value="True" name="useLca" id="useLca" checked>  Use LCA
-                                                </label>
-                                            </a>
-                                        </li>
-                                    </ul>
-                                    
-                                    
-                                    <button id="upload_button" class="btn btn-success" type="button" name="upload">
-                                        Upload
-                                    </button>
+                            <div class="row">
+                                <div class="col-lg-12">
+                                    <div class="input-group" id="upload-group">
+                                        <span class="input-group-btn">
+                                            <span class="btn btn-primary btn-file">
+                                                Browse&hellip; <input type="file" name="upFile" id="upload_file" multiple/>
+                                        </span>
+                                            </span>
+                                        <input type="text" class="form-control" id="upload_name" readonly></input>
+                                        <div class="input-group-btn">                                 
+                                            <button id="upload_button" class="btn btn-success disabled" type="button" name="upload">
+                                                Upload
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <br>
+                            <div class="row">
+                                <div class="col-lg-12">
+                                    <div class="uploadOptions" id="uploadOptions" hidden>
+                                        <div class="row">
+                                            <div class="col-lg-12">
+                                                <div class="optionHeader">
+                                                    <div class="optionHeaderTitle">Upload Options
+                                                        <button type="button" class="close" data-dismiss="modal" aria-label="Close" id="clear_upload"><span aria-hidden="true">&times;</span></button>   
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="row">
+                                            <div class="uploadOptionsBody">
+                                                <div class="col-lg-3 col-md-3">
+                                                    <div class="optionText">
+                                                        <label for="fileFormat">File Format</label>
+                                                        <select class="form-control" id="fileFormat">
+                                                            <option>Auto detect</option>
+                                                            <option>Blast Tabular (outfmt 6)</option>
+                                                            <option>SAM File</option>
+                                                            <option>Custom</option>
+                                                        </select>                                             
+                                                    </div>
+                                                </div>
+                                                <div class="col-lg-3 col-md-3">                                        
+                                                    <div class="optionText">
+                                                    <p>Data Cleaning</p>
+                                                    <label for="useLca">
+                                                        <input type="hidden" value="False" name="useLca" >
+                                                        <input type="checkbox" value="True" name="useLca" id="useLca" checked>  Use LCA
+                                                    </label>
+                                                    </div>
+                                                </div>
+                                                <div class="col-lg-6 col-md-6">
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div id="customFileFormatRow" hidden>
+                                            <div class="row">
+                                                <div class="col-lg-12">
+                                                    <div class="optionSubHeader">
+                                                        <div class="optionHeaderTitle">Custom File Format   
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="row">
+                                                <div class="uploadOptionsBody">
+                                                    <div class="col-lg-3 col-md-3">
+                                                        <div class="optionText">
+                                                            <label for="fileFormat">Delimiters  
+                                                                <span class="glyphicon glyphicon-plus delimiter-glyph" id="addDelimiter"></span>
+                                                                <span class="glyphicon glyphicon-minus delimiter-glyph" id="removeDelimiter"></span>
+                                                            <select class="form-control delimiter-select"></label>
+                                                                <option>Tab</option>
+                                                                <option>Space</option>
+                                                                <option>Custom</option>
+                                                            </select>  
+                                                            <div id="additionalDelimiters">
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-lg-3 col-md-3">
+                                                        <div class="optionText">
+                                                            <label for="fileFormat">GI Index</label>
+                                                            <input class="form-control" placeholder="2"></input>
+                                                            <label for="fileFormat">Score Index</label>
+                                                            <input class="form-control" placeholder="6"></input>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </form>
@@ -358,6 +421,48 @@
             </div>
         </div>
         
+        <!--
+        <div class="modal fade" id="uploadOptions" tabindex="-1" role="dialog" aria-labelledby="uploadOptionsLabel">
+            <div class="modal-dialog" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                            <h4 class="modal-title" id="uploadOptionsLabel">Upload Options</h4>
+                    </div>
+                    <div class="modal-body">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <label for="fileFormat">File Format</label>
+                                <select class="form-control" id="fileFormat">
+                                    <option>Auto detect</option>
+                                    <option>Custom</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="useLca">
+                                    <input type="hidden" value="False" name="useLca" >
+                                    <input type="checkbox" value="True" name="useLca" id="useLca" checked>  Use LCA
+                                </label>
+                                <label for="defaultOptions">
+                                    <input type="hidden" value="False" name="defaultOptions" >
+                                    <input type="checkbox" value="True" name="defaultOptions" id="defaultOptions" checked>  Use default options
+                                </label>
+                            </div>
+                            <div class="col-md-4">
+                            </div>
+                        </div>                                             
+                    </div>
+                    <div class="modal-footer">
+                        <div class="row">
+                            <div class="col-md-8">
+                                stuff
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        -->
         
         {% end %}
     {% end %}

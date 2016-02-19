@@ -84,10 +84,16 @@ class TaxTree():
                                 "taxId":nodeName,
                                 "size":self.taxCount[nodeName]})
         if nodeName in self.children:
+            print nodeName
             children = self.children[nodeName]
             tempTree["children"] = [self.stitchNodes(child) for 
                                     child in children]
         return tempTree
+    
+    def checkIfNodesExists(self):
+        if len(self.names) == 1:
+            return False
+        return True
         
 def createTree(taxIds,taxCount):
     start = time.time()
@@ -97,7 +103,10 @@ def createTree(taxIds,taxCount):
     taxTree.getChildrenDict()
     taxTree.getTaxIdNames()
     taxTree.fillCounts()
-    fullTree = taxTree.stitchNodes(1)    
+    if taxTree.checkIfNodesExists():
+        fullTree = taxTree.stitchNodes(1)
+    else:
+        raise Exception("Tree reduced to nothing")
     fullTree = json.dumps(fullTree,sort_keys=False)
     
     end = time.time()

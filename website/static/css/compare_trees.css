@@ -1,20 +1,44 @@
 .openFile {
-    border: #DCDCDC 1px solid;
-    border-radius: 5px;
-    padding: 10px;
+  border: #DCDCDC 1px solid;
+  border-radius: 5px;
+  padding: 10px;
 }
 
 .bar.positive {
-    fill: steelblue;
-    stroke: none;
+  fill: steelblue;
+  stroke: none;
 }
 
 .bar.negative {
-    fill: brown;
-    stroke: none;
+  fill: brown;
+  stroke: none;
+}
+
+.bar.active {
+  fill: silver;  
 }
 
 .bar:hover {
-    stroke: black;
+  stroke: black;
 }
 
+.axis {
+  fill: none;
+  stroke: #000;
+  shape-rendering: crispEdges;
+}
+
+.tick {
+  fill: none;
+  stroke: #000;
+  shape-rendering: crispEdges;    
+}
+
+.barChartBackground {
+  fill: white;
+}
+
+.close-bar-chart:hover {
+  cursor: pointer;
+  color: gray;
+}
