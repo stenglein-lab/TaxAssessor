@@ -16,7 +16,7 @@
             </ul>
         </li>
             {% if openFile != None %}
-                <li><a href="/report">Return to Open File</a></li>
+                <li><a href="/file_report">Return to Open File</a></li>
             {% end %}
         {% else %}
         <li class="dropdown">
@@ -157,8 +157,7 @@
                                                 <div class="col-lg-3 col-md-3">
                                                     <div class="optionText">
                                                         <label for="fileFormat">File Format</label>
-                                                        <select class="form-control" id="fileFormat">
-                                                            <option>Auto detect</option>
+                                                        <select class="form-control" id="fileFormat" name="fileFormat">
                                                             <option>Blast Tabular (outfmt 6)</option>
                                                             <option>SAM File</option>
                                                             <option>Custom</option>
@@ -191,24 +190,50 @@
                                                 <div class="uploadOptionsBody">
                                                     <div class="col-lg-3 col-md-3">
                                                         <div class="optionText">
-                                                            <label for="fileFormat">Delimiters  
-                                                                <span class="glyphicon glyphicon-plus delimiter-glyph" id="addDelimiter"></span>
-                                                                <span class="glyphicon glyphicon-minus delimiter-glyph" id="removeDelimiter"></span>
-                                                            <select class="form-control delimiter-select"></label>
+                                                            <label for="delimiters">Delimiters  
+                                                                <!--<span class="glyphicon glyphicon-plus delimiter-glyph" id="addDelimiter"></span>
+                                                                <span class="glyphicon glyphicon-minus delimiter-glyph" id="removeDelimiter"></span>-->
+                                                            <select class="form-control delimiter-select" id='delimiters' name="delimiter"></label>
                                                                 <option>Tab</option>
                                                                 <option>Space</option>
+                                                                <option>Comma</option>
                                                                 <option>Custom</option>
-                                                            </select>  
-                                                            <div id="additionalDelimiters">
+                                                            </select>
+                                                            <div class="customDelimiter" hidden>
+                                                                <label for="customDelimiter">Custom Delimiter</label>
+                                                                <input class="form-control" placeholder="" id="customDelimiter" name="customDelimiter"></input>
                                                             </div>
+                                                            <!--<div id="additionalDelimiters">
+                                                            </div>-->
                                                         </div>
                                                     </div>
                                                     <div class="col-lg-3 col-md-3">
                                                         <div class="optionText">
-                                                            <label for="fileFormat">GI Index</label>
-                                                            <input class="form-control" placeholder="2"></input>
-                                                            <label for="fileFormat">Score Index</label>
-                                                            <input class="form-control" placeholder="6"></input>
+                                                            <label for="giIndex">GI Index</label>
+                                                            <input class="form-control" placeholder="2" id="giIndex" name="giIndex"></input>
+                                                            <label for="giDelimiter">GI Delimiter</label>
+                                                            <input class="form-control" placeholder="Optional" id="giDelimiter" name="giDelimiter"></input>
+                                                            <label for="giSubIndex">GI Sub-Index</label>
+                                                            <input class="form-control" placeholder="Optional" id="giSubIndex" name="giSubIndex"></input>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-lg-3 col-md-3">
+                                                        <div class="optionText">
+                                                            <label for="scoreIndex">Score Index</label>
+                                                            <input class="form-control" placeholder="6" id="scoreIndex" name="scoreIndex"></input>
+                                                            <label> 
+                                                                <input type="radio" value="lower" name="scorePref" />  Lower score is "better"
+                                                            </label>
+                                                            <label> 
+                                                                <input type="radio" value="higher" name="scorePref" />  Higher score is "better"
+                                                            </label>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-lg-3 col-md-3">
+                                                        <div class="optionText">
+                                                            <label for="headerFile">Header File</label>
+                                                            <input class="form-control" type="file" id="headerFile"></input>
+                                                            <input name="headerData" id="headerData" hidden></input>
                                                         </div>
                                                     </div>
                                                 </div>

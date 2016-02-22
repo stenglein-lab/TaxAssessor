@@ -554,6 +554,26 @@ $('#manageTabs a[href="#Upload"]').click(function (e) {
     $('#removeDelimiter').click( function(event) {
         $('#additionalDelimiters select:last-child').remove();
     });
+    
+    $('#delimiters').change( function(e) { 
+        var value = $(this).val();
+        if (value === "Custom") {
+            $('.customDelimiter').fadeIn();
+        } else {
+            $('.customDelimiter').fadeOut();
+        }
+    });
+    
+    $('#headerFile').change( function(e) {
+        var file = this.files[0];
+        var reader = new FileReader();
+        
+        reader.onload = function(progressEvent) {
+            $('#headerData').val(this.result);
+        }
+        
+        reader.readAsText(file);
+    });
 })
 
 $('#manageTabs a[href!="#Upload"]').click(function (e) {
@@ -562,6 +582,7 @@ $('#manageTabs a[href!="#Upload"]').click(function (e) {
     $('#fileFormat').unbind();
     $('#addDelimiter').unbind();
     $('#removeDelimiter').unbind();
+    $('#delimiters').unbind();
 })
 
 $('#manageTabs a[href="#Delete"]').click(function (e) {

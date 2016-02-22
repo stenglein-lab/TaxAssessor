@@ -297,6 +297,8 @@ class Upload(BaseHandler):
         start = time.time() 
         status = {}
         loadOptions = self.getLoadOptions()
+        return
+        
         for file in self.request.files['upFile']:
             try:
                 fileName = file['filename']
@@ -316,8 +318,49 @@ class Upload(BaseHandler):
             
     def getLoadOptions(self):
         options = {}
-        print "hi"
         options["useLca"] = ("True" == self.get_argument('useLca'))
+        fileFormat = self.get_argument('fileFormat')
+        if fileFormat[0:5] == "Blast":
+            options["fileFormat"] = "blast"
+            options["delimeter"] = "\t"
+            options["giIndex"] = 2
+            options["giDelimiter"] = "|"
+            options["giSubIndex"] = 2
+            options["scoreIndex"] = 11
+            options["scorePreference"] = "lower"
+            options["header"] = ("QueryID\tSubjectID\t%Ident\tAlignLen\t"
+                    "nGapOpen\tqStart\tqEnd\tsubStart\tsubEnd\teVal\tbitScore")
+            
+        elif fileFormat[0:3] == "SAM":
+            options["fileFormat"] = "sam"
+            options["delimeter"] = "\t"
+            options["giIndex"] = 3
+            options["giDelimiter"] = "|"
+            options["giSubIndex"] = 2
+            options["scoreIndex"] = 5
+            options["scorePreference"] = "higher"
+            options["header"] = ("QNAME\tFLAG\tRNAME\tPOS\tMAPQ\tCIGAR\tRNEXT\t"
+                                 "PNEXT\tTLEN\tSEQ\tQUAL")
+            
+        elif fileFormat[0:6] == "Custom":
+            options["fileFormat"] = "custom"
+            delimiter = self.get_argument("delimiter")
+            if delimiter == "Custom":
+                options["delimeter"] = str(self.get_argument("customDelimiter"))
+            elif delimiter == "Tab":
+                options["delimeter"] = "\t"
+            elif delimiter == "Space":
+                options["delimiter"] = " "
+            elif delimiter == "Comma":
+                options["delimiter"] = ","
+            options["giIndex"] = int(self.get_argument("giIndex"))
+            options["giDelimiter"] = str(self.get_argument("giDelimiter"))
+            options["giSubIndex"] = int(self.get_argument("giSubIndex"))
+            options["scoreIndex"] = int(self.get_argument("scoreIndex"))
+            options["scorePreference"] = str(self.get_argument("scorePref"))
+            options["header"] = str(self.get_argument("headerData"))
+            
+        print options
         return options
             
     # def on_complete(self, res):

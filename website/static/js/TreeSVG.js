@@ -62,11 +62,12 @@ TaxAss.tree.buildTree = function() {
 
   d3.json(TaxAss.tree.taxTreeJson, function(error, flare) {
     TaxAss.tree.treeRoot = flare;
-    console.log(flare);
     TaxAss.tree.treeRoot.x0 = TaxAss.tree.height/2;
     TaxAss.tree.treeRoot.y0 = TaxAss.tree.width/10;
     TaxAss.tree.treeRoot.children.forEach(collapseToRoot);
+    tree.nodes(TaxAss.tree.treeRoot).reverse() 
     filterCounts(TaxAss.tree.treeRoot);
+    accordianData(TaxAss.tree.treeRoot,null);
     updateTree(TaxAss.tree.treeRoot);
   });
 
@@ -100,6 +101,39 @@ TaxAss.tree.buildTree = function() {
     if(children)
       children.forEach(collapse);
   }
+  
+function accordianData (d,startParent) {
+    if (startParent !== null)  {
+        if (!d.children) {
+            if ((d.depth - startParent.depth) > 3) {
+                startParent.children[0]._accordian = startParent.children[0].children
+                startParent.children[0].children = [d]
+                startParent.children[0].name = startParent.children[0].name + "..." + d.parent.name;
+                d.parent = startParent.children[0]
+            }
+        } else if (d.children.length == 1) {
+            accordianData(d.children[0],startParent);
+        } else if (d.children.length > 1) {
+            for (var i=0; i < d.children.length; i++) {
+                accordianData(d.children[i],null)
+            }
+            if ((d.depth - startParent.depth) > 3) {
+                startParent.children[0]._accordian = startParent.children[0].children
+                startParent.children[0].children = [d]
+                startParent.children[0].name = startParent.children[0].name + "..." + d.parent.name;
+                d.parent = startParent.children[0]
+            }
+        }
+    } else if (startParent == null && d.children) {
+        if (d.children.length == 1 ) {
+            accordianData(d.children[0],d)
+        } else { 
+            for (var i=0; i < d.children.length; i++) {
+                accordianData(d.children[i],null)
+            }
+        }    
+    }
+}
 
   function updateTree(source) {
     var rightClickMenu = [
@@ -172,6 +206,8 @@ TaxAss.tree.buildTree = function() {
     // Compute the new tree layout.
     var nodes = tree.nodes(TaxAss.tree.treeRoot).reverse(),
       links = tree.links(nodes);
+
+
       
     // Normalize for fixed-depth.
     nodes.forEach(function(d) { 
@@ -209,7 +245,14 @@ TaxAss.tree.buildTree = function() {
         }
       })
       .on('contextmenu', d3.contextMenu(rightClickMenu)) // attach menu to element
-      .style("fill", function(d) { return d._children ? "lightsteelblue" : "#fff"; })
+      .style("fill", function(d) { 
+        if (d._accordian) { 
+          return "#009933";
+        } else if (d._children) { 
+          return "lightsteelblue";
+        } else { 
+          return "#fff";
+        }})
       .attr('data-original-title', function(d) { return d.name+"<br>Size: "+Math.round(10*d.size)/10; })
       .attr("class","my_node");
 
@@ -239,7 +282,14 @@ TaxAss.tree.buildTree = function() {
           return (9*(d.size/TaxAss.tree.treeRoot.size)+1);
         }
       })
-      .style("fill", function(d) { return d._children ? "lightsteelblue" : "#fff"; })
+      .style("fill", function(d) { 
+        if (d._accordian) { 
+          return "#009933";
+        } else if (d._children) { 
+          return "lightsteelblue";
+        } else { 
+          return "#fff";
+        }})
       .attr("title",function(d) {return "Size: "+Math.round(10*d.size)/10;})
       .attr('data-original-title', function(d) { return d.name+"<br>Size: "+Math.round(10*d.size)/10; })
       .attr("class","my_node");
