@@ -7,8 +7,8 @@
 .rect
 
 .rectHover {
-  fill: #999999; 
-  
+  fill: #999999;
+
 }
 
 svg {
@@ -57,19 +57,31 @@ rect.read.hidden {
   fill: none;
 }
 
-#optionsPane {
+.optionsPane {
     border-style:solid;
     border-color: #C0C0C0;
     border-width: 1px;
     border-radius: 5px 5px 5px 5px;
     padding-bottom: 5px;}
-    
-.optionsRow + .optionsRow {
+
+.optionsSection + .optionsSection {
     border-top: 1px solid;
     border-color: #C0C0C0;
+}
 
+.headerRow {
+    color: #FFFFFF;
+    background-color: #337ab7;
+}
+
+.headerRow.firstHeader {
+    border-radius: 5px 5px 0px 0px;
 }
 
 .optionsRow {
-    padding-bottom: 10px;
+    padding: 5px;
+}
+
+#filterPane {
+
 }

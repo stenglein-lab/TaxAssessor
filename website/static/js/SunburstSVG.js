@@ -1,6 +1,6 @@
 var taxTreeJson = "../../docs/"+$('#username').attr("value")+"/"+
   $('#open-file').attr("value")+"_tree.json";
-  
+
 console.log(taxTreeJson);
 
 $(function () {
@@ -41,7 +41,7 @@ svg.append("rect")
     .attr("height", "100%")
     .attr("fill", "gray")
     .attr("transform", "translate(" + -width / 2 + "," + (-height / 2) + ")");;
-*/     
+*/
 var partition = d3.layout.partition()
     .sort(function(a,b) {
         return b.size - a.size;
@@ -54,7 +54,7 @@ var arc = d3.svg.arc()
     .endAngle(function(d) { return Math.max(0, Math.min(2 * Math.PI, x(d.x + d.dx))); })
     .innerRadius(function(d) { return Math.max(0, y(d.y)*scaleArcRadius(d)); })
     .outerRadius(function(d) { return Math.max(0, y(d.y + d.dy)*scaleArcRadius(d)); });
-    
+
 d3.json(taxTreeJson, function(error, root) {
     if (error) throw error;
     getNamesForAutocomplete(root);
@@ -145,19 +145,19 @@ d3.json(taxTreeJson, function(error, root) {
         action: function(elm, d, i) {
           window.prompt("Copy to clipboard: Ctrl+C, Enter", d.taxId);
         }
-      },      
+      },
     ];
-    
+
     //Create group for arcs
     var g1 = svg.datum(root).selectAll("path")
         .data(partition.nodes)
       .enter().append( "g");
-    
+
     //Have separate group for text (so the text will always be on top)
     var g2 = svg.datum(root).selectAll("path")
         .data(partition.nodes)
       .enter().append('g');
-      
+
     var path = g1.append("path")
         .attr("d", arc)
         .attr('id', function(d) { return d.taxId+"_arc"; })
@@ -180,10 +180,10 @@ d3.json(taxTreeJson, function(error, root) {
             this.style.fill = arcColor;
             this.style.stroke = "none";
         });
-      
+
     var titles = path.append("title")
         .text(function(d) { return d.name + "\n" + formatNumber(d.size); });
-        
+
     var text = g2.append("text")
         .style("font-size", "13px")
         .attr("class","label")
@@ -191,7 +191,7 @@ d3.json(taxTreeJson, function(error, root) {
          // Rotate around the center of the text, not the bottom left corner
         .attr("text-anchor", SetTextAnchor)
          // First translate to the desired point and set the rotation
-        .attr("transform", function(d) { return "translate(" + arc.centroid(d) + ")" + "rotate(" + getAngle(d) + ")"; })                       
+        .attr("transform", function(d) { return "translate(" + arc.centroid(d) + ")" + "rotate(" + getAngle(d) + ")"; })
         .attr("dx", "0") // margin
         .attr("dy", function (d) {
             if (d.children) {
@@ -202,9 +202,10 @@ d3.json(taxTreeJson, function(error, root) {
         }) // vertical-align
         .text(SetText)
         .attr("pointer-events","none");
-    
-    //filterByAbundance(root,"rel",0.0001);    
-            
+
+    filterByAbundance(root,"rel",0.0001);
+    addFilterButton("Abundance",0.01,"%")
+
     function SetTextAnchor(d) {
         if (d.children && d.depth <= currentDepth + 2) {
             return "middle";
@@ -213,15 +214,15 @@ d3.json(taxTreeJson, function(error, root) {
                 return "start";
             } else {
                 return "end";
-            }            
+            }
         }
-    }  
-         
+    }
+
     function SetText(d) {
         if (currentDepth-1 <= d.depth && d.depth <= currentDepth + 2) {
             if ((arc.endAngle()(d) - arc.startAngle()(d)) > 0.5) {
                 return d.name;
-            } 
+            }
         } else if ((arc.endAngle()(d) - arc.startAngle()(d)) > 0.05){
             if (!d.children) {
                 return d.name;
@@ -235,15 +236,15 @@ d3.json(taxTreeJson, function(error, root) {
             }
         }
         return null;
-    }       
-                
+    }
+
     function getAngle(d) {
         if (d.children && d.depth <= currentDepth + 2) {
             var thetaDeg = (180 / Math.PI * (arc.startAngle()(d) + arc.endAngle()(d)) / 2 );
             return (thetaDeg > 90 && thetaDeg < 280) ? thetaDeg - 180 : thetaDeg;
         } else {
             var thetaDeg = (180 / Math.PI * (arc.startAngle()(d) + arc.endAngle()(d)) / 2 - 90);
-            return (thetaDeg > 90) ? thetaDeg - 180 : thetaDeg;        
+            return (thetaDeg > 90) ? thetaDeg - 180 : thetaDeg;
         }
 
     }
@@ -265,7 +266,7 @@ d3.json(taxTreeJson, function(error, root) {
                     yr = d3.interpolate(y.range(), [d.y ? 20 : 0, radius]);
                 return function(t) { x.domain(xd(t)); y.domain(yd(t)).range(yr(t)); };
             });
-            
+
         trans.selectAll("path")
             .attrTween("d", function(d) { return function() { return arc(d); }; });
 
@@ -273,7 +274,7 @@ d3.json(taxTreeJson, function(error, root) {
             .attrTween("transform", function(d) { return function () {
                 return "translate(" + arc.centroid(d) + ")" + "rotate(" + getAngle(d) + ")";}})
             .attrTween("text-anchor", function(d) { return function () { return SetTextAnchor(d)}})
-            .tween("text", function(d) { 
+            .tween("text", function(d) {
                 return function() {
                     if (currentDepth-1 <= d.depth && d.depth <= currentDepth + 2) {
                         if ((arc.endAngle()(d) - arc.startAngle()(d)) > 0.5) {
@@ -315,7 +316,7 @@ d3.json(taxTreeJson, function(error, root) {
             d.children.forEach(updateFilter)
         }
     }
-    
+
     // When switching data: interpolate the arcs in data space.
     function arcTweenData(a, i) {
         var oi = d3.interpolate({x: a.x0, dx: a.dx0}, a);
@@ -358,9 +359,9 @@ d3.json(taxTreeJson, function(error, root) {
             return tween;
         }
     }
-    
+
     function filterTransition() {
-    
+
         var value = function(d) {
             if (d.hidden) {
                 return 0;
@@ -368,19 +369,19 @@ d3.json(taxTreeJson, function(error, root) {
                 return d.size;
             }
         }
-                
+
         path.data(partition.value(value).nodes)
 
         var trans = svg.transition()
             .duration(duration)
-            
+
         trans.selectAll("path")
-            .attrTween("d", arcTweenData)            
-            
+            .attrTween("d", arcTweenData)
+
         trans.selectAll('.label')
             .attrTween("transform", arcTweenText)
             .attrTween("text-anchor", function(d) { return function () { return SetTextAnchor(d)}})
-            .tween("text", function(d) { 
+            .tween("text", function(d) {
                 return function() {
                     if (currentDepth-1 <= d.depth && d.depth <= currentDepth + 2) {
                         if ((arc.endAngle()(d) - arc.startAngle()(d)) > 0.5) {
@@ -427,9 +428,8 @@ d3.json(taxTreeJson, function(error, root) {
                 }
             }
         }
-        
     }
-    
+
     function filterByName(d,isInclusive,name) {
         function showChildren(d) {
             d.nameFiltered = false;
@@ -449,7 +449,7 @@ d3.json(taxTreeJson, function(error, root) {
                 d.children.forEach(hideChildren);
             }
         }
-        
+
         if (name == d.name || name == d.taxId) {
             if (isInclusive) {
                 showChildren(d);
@@ -458,7 +458,7 @@ d3.json(taxTreeJson, function(error, root) {
                 hideChildren(d);
             }
         }
-        
+
         //Fill in the remaining nodes
         if (d.nameFiltered == null) {
             if (isInclusive) {
@@ -466,16 +466,16 @@ d3.json(taxTreeJson, function(error, root) {
             } else {
                 d.nameFiltered = false;
             }
-          
+
         }
-        
+
         if (d.children) {
             for (var i=0; i<d.children.length; i++) {
                 filterByName(d.children[i],isInclusive,name);
             }
         }
     }
-    
+
     function filterByAverageScore(d,cutoff,removeHigher) {
         var checkVal = (removeHigher ? d.score : -d.score),
             cutoff = (removeHigher ? cutoff : -cutoff);
@@ -489,9 +489,66 @@ d3.json(taxTreeJson, function(error, root) {
                 filterByAverageScore(d.children[i],cutoff,removeHigher);
             }
         }
-      
     }
-    
+
+    function addFilterButton(type,name,modifier) {
+        $('.filteredItem').unbind();
+        var filterId;
+        if (type=='Name') {
+            var idName = (name.toString()).replace(/ /g,"_");
+            if ($('#'+type+idName).length) {
+                $('#'+type+idName).remove();
+            }
+            filterId = type+idName;
+        } else if (type=="Abundance") {
+            if ($('#Abundance').length) {
+                $('#Abundance').remove();
+            }
+            filterId = 'Abundance'
+        }
+        var filterPane = $('#filterTable'),
+            insertHTML = '<tr id='+filterId+' class="filteredItem" value="'+type+'^^'+name+'^^'+modifier+'""><td>'+type+': '+name+' - '+modifier+'</td><td><span class="glyphicon glyphicon-remove"></span></td><tr>';
+        filterPane.prepend(insertHTML);
+        $('.filteredItem').click(removeFilterButton);
+    }
+
+    function removeFilterButton() {
+
+        function removeHiddenTags(d) {
+            d.abundanceFilter = null;
+            d.handFiltered = null;
+            d.nameFiltered = null;
+            d.aveScoreFilter = null;
+            if (d.children) {
+                d.children.forEach(removeHiddenTags);
+            }
+        }
+        removeHiddenTags(root);
+
+        $(this).remove();
+
+        $('.filteredItem').each(function() {
+            var filter = $(this).attr('value').split('^^');
+            console.log(filter);
+
+            if (filter[0] == 'Name') {
+                var isInclusive = (filter[2]=='Include'?true:false);
+                filterByName(root,isInclusive,filter[1]);
+            } else if (filter[0] == "Abundance") {
+                console.log('here');
+                var type = (filter[2]=='Count'?'count':'rel');
+                var threshold = type === "count" ? filter[1]: filter[1]/100;
+
+                filterByAbundance(root,type,threshold)
+            }
+
+
+        });
+
+        updateFilter(root);
+        filterTransition();
+    }
+
     function fillInInvisibleChildren(d) {
         if (d.children) {
             var totalSize = 0;
@@ -504,15 +561,16 @@ d3.json(taxTreeJson, function(error, root) {
             d.children.forEach(fillInInvisibleChildren);
         }
     }
-    
+
     $('#backToRoot').click(function() {
         click(root);
     });
-    
+
     $('#removeFilters').click(function(e) {
         $('#filterName').val('');
         $('#filterByFile').val('');
         $('#abundanceAmount').val('0');
+        $('.filteredItem').remove();
         function removeHiddenTags(d) {
             d.abundanceFilter = null;
             d.handFiltered = null;
@@ -526,21 +584,22 @@ d3.json(taxTreeJson, function(error, root) {
         updateFilter(root);
         filterTransition();
     });
-    
+
     $('#filterByAbundance').submit(function(e) {
         e.preventDefault();
-        
+
         var threshold = $('#abundanceAmount').val(),
             type = $('.abundanceRadio:checked').val();
-            
-        threshold = type === "count" ? threshold: threshold/100;
-        
+
+        var newThreshold = type === "count" ? threshold: threshold/100;
+
         console.log(threshold+","+type);
-        filterByAbundance(root,type,threshold);
+        addFilterButton("Abundance",threshold,(type=='count'?'Count':'%'))
+        filterByAbundance(root,type,newThreshold);
         updateFilter(root);
         filterTransition();
     });
-    
+
     $('#filterByName').submit(function(e) {
         e.preventDefault();
         var name = $('#filterName').val(),
@@ -553,12 +612,13 @@ d3.json(taxTreeJson, function(error, root) {
         filterByName(root,isInclusive,name);
         updateFilter(root);
         filterTransition();
+        addFilterButton('Name',name,(type=='inclusive'?'Include':'Exclude'));
     });
-    
+
     $('#filterByFile').change( function(e) {
         var file = this.files[0];
         var reader = new FileReader();
-        
+
         reader.onload = function(e) {
             var a = reader.result.replace(/\r/g, '\n');
             var b = a.split('\n');
@@ -568,15 +628,15 @@ d3.json(taxTreeJson, function(error, root) {
                 if (c.length == 2) {
                     var isInclusive = (c[1] == 'include' ? true : false);
                     filterByName(root,isInclusive,c[0]);
+                    addFilterButton('Name',c[0],(isInclusive?'Include':'Exclude'));
                 }
             }
             updateFilter(root);
             filterTransition();
         }
-        
         reader.readAsText(file);
     });
-    
+
     $('#filterByAveScore').submit( function(e) {
         e.preventDefault();
         var value = $('#filterAveScore').val(),
@@ -590,17 +650,17 @@ d3.json(taxTreeJson, function(error, root) {
         updateFilter(root);
         filterTransition();
     });
-    
-    
+
+
     $(".my_node").tooltip({
         'container': 'body',
         'placement': 'left',
         'html'   : true,
         'delay'  : {'show':100,'hide':100},
     });
-    
+
 });
-    
+
 function getNamesForAutocomplete(d) {
     taxNames.push(d.name);
     if (d.children) {
@@ -706,11 +766,11 @@ function accordianData (d,startParent) {
     } else if (startParent == null && d.children) {
         if (d.children.length == 1 ) {
             accordianData(d.children[0],d)
-        } else { 
+        } else {
             for (var i=0; i < d.children.length; i++) {
                 accordianData(d.children[i],null)
             }
-        }    
+        }
     }
 }
 
@@ -733,7 +793,7 @@ var tableSvg = d3.select("#taxaTable").append("div")
     .classed("table-svg",true)
     .attr("preserveAspectRatio","xMinYMin meet")
     .attr("viewBox","0 0 "+tableWidth+" "+tableHeight)
-    
+
 var tableCanvas = tableSvg.append("g")
     .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
@@ -775,7 +835,7 @@ function lightenRGBColor(color) {
     f[1] = Math.floor(f[1]*2);
     f[2] = Math.floor(f[2]*2);
     return "rgb("+f[0]+","+f[1]+","+f[2]+")";
-}  
+}
 
 function updateTable(source,taxaList) {
     var n = source.length;
@@ -783,7 +843,7 @@ function updateTable(source,taxaList) {
     function color(d) {
         return "#3182bd" ;//: d.genes ? "#c6dbef" : "#fd8d3c";
     }
-    
+
     function opacity(d) {
         return d.display ? 1:1e-6;
     }
@@ -791,13 +851,13 @@ function updateTable(source,taxaList) {
     function computeBarWidth(d) {
         return ((d.count/maxCount) * barWidth)+(barWidth*0.02);
     }
-    
-  
-    
-    
-    
+
+
+
+
+
     var maxCount = 0;
-    
+
     if (taxaList.length > 0) {
         maxCount = 0
         source.forEach( function(d) {
@@ -809,7 +869,7 @@ function updateTable(source,taxaList) {
             } else {
                 d.display = false;
             }
-          
+
         });
     } else {
         source.forEach( function(d) {
@@ -819,12 +879,12 @@ function updateTable(source,taxaList) {
             d.display = true;
         });
     }
-    
+
     var x0 = 0,
         y0 = 0,
         padding = 1,
         shownGenes = [];
-        
+
     //compute new positions
     source.forEach( function(d) {
         if (d.display == true) {
@@ -838,7 +898,7 @@ function updateTable(source,taxaList) {
     });
 
     var tableHeight = y0 + margin.top + margin.bottom;
-    
+
     tableSvg.transition()
         .duration(duration)
         .attr("viewBox","0 0 "+tableWidth+" "+tableHeight)
@@ -849,7 +909,7 @@ function updateTable(source,taxaList) {
 
     var taxa = tableSvg.selectAll(".taxon")
         .data(source);
-                
+
     var taxaEnter = taxa.enter()
         .append("g")
         .classed("taxon",true)
@@ -861,27 +921,27 @@ function updateTable(source,taxaList) {
             var arcColor = document.getElementById(d.taxId+'_arc').style.fill;
             arcColor = darkenRGBColor(arcColor);
             document.getElementById(d.taxId+'_arc').style.fill = arcColor;
-            document.getElementById(d.taxId+'_arc').style.stroke = "#000000" 
+            document.getElementById(d.taxId+'_arc').style.stroke = "#000000"
         })
         .on("mouseout", function(d) {
             d3.select(this).select("rect").style("fill",color);
             var arcColor = document.getElementById(d.taxId+'_arc').style.fill;
             arcColor = lightenRGBColor(arcColor);
             document.getElementById(d.taxId+'_arc').style.fill = arcColor;
-                        document.getElementById(d.taxId+'_arc').style.stroke = "none" 
+                        document.getElementById(d.taxId+'_arc').style.stroke = "none"
         });
-        
+
     var taxaRect = taxaEnter.append("rect")
         .classed("taxonRect",true)
         .attr("height", barHeight)
         .attr("width", 0)
         .style("fill", color);
-        
+
     var taxaText = taxaEnter.append("text")
         .attr("dy", 25)
         .attr("dx", 5.5)
         .style("font-size", "14px")
-        .text(function(d) { 
+        .text(function(d) {
             if(d.name.length > 70) {
                 return d.name.substring(0,67)+"...";
             } else {
@@ -889,7 +949,7 @@ function updateTable(source,taxaList) {
             }
         })
         .style("cursor","default")
-      
+
 
     // Transition nodes to their new position.
     //taxaEnter.transition()
@@ -924,15 +984,15 @@ function clickTable(d,startPos) {
     setTimeout(function() {$('.navigateGenes').removeClass("disabled");},500)
     $('#forwardGenes').on('click', function(passData) {clickTable(d,startPos+offset);});
     $('#reverseGenes').on('click', function(passData) {clickTable(d,startPos-offset);});
-    
+
     var allSeqIds = []
-    
+
     d.genes.sort(function(a,b) {return b['count'] - a['count']})
-    
+
     d.genes.forEach( function(gene) {
         allSeqIds.push(gene.geneId)
     });
-    
+
     if (d.genes.length < startPos+offset) {
         var endPos = d.genes.length;
         $('#forwardGenes').prop("disabled",true);
@@ -940,13 +1000,13 @@ function clickTable(d,startPos) {
         var endPos = startPos+offset;
         $('#forwardGenes').prop("disabled",false);
     }
-    
+
     if (startPos==0) {
         $('#reverseGenes').prop("disabled",true);
     } else {
         $('#reverseGenes').prop("disabled",false);
     }
-    
+
     for (var j=startPos; j<endPos; j++) {
         tableDiv += '<tr>';
         tableDiv += '<td>'+(j+1)+'</td>';
@@ -956,15 +1016,15 @@ function clickTable(d,startPos) {
         tableDiv += '<td>'+d.genes[j]['count']+"</td>";
         tableDiv += '</tr>';
     }
-    
+
     getAllGeneNames(allSeqIds.slice(startPos,endPos));
-    
-    
+
+
     $('#geneTableBody').html(tableDiv);
     $('#taxonModalTitle').html(d.name)
     $('#taxonModal').modal('show');
-    
-    
+
+
     $('.getCoverage').click(function(e) {
         console.log(d);
         $('#coverageSvg').empty()
@@ -990,8 +1050,8 @@ function clickTable(d,startPos) {
                 var err = eval("(" + xhr.responseText + ")");
                 alert(err.Message);
             },
-        });    
-    }) 
+        });
+    })
 }
 
 function getAllGeneNames(allSeqIds) {
@@ -1029,13 +1089,13 @@ function getAllGeneNames(allSeqIds) {
 
 
 /*function getNcbiCoverageInfo(seqId,coverageData) {
-          
+
     var geneName = ""
     var base = 'http://eutils.ncbi.nlm.nih.gov/entrez/eutils/';
     var extras = '&tool=TaxAssessor&email=jallison_at_colostate.edu'
-    
+
     if (seqId.indexOf('.') === -1) {
-        
+
         var url = base + "efetch.fcgi?db=nucleotide&id="+seqId+"&rettype=docsum&retmode=json" + extras;
         $.ajax({
             type: 'GET',
@@ -1049,13 +1109,13 @@ function getAllGeneNames(allSeqIds) {
                 alert(err.Message);
             },
             complete: setTimeout(function() {
-                $('.getGeneName').prop("disabled",false);                  
+                $('.getGeneName').prop("disabled",false);
             },1000)
         });
     }
 }*/
 
-function createCoverageChart(geneInfo,coverageData) {  
+function createCoverageChart(geneInfo,coverageData) {
 
     $('#coverageTitle').html("Coverage Report For: "+geneInfo['name'])
     var seqLength = geneInfo['seqLen'];
@@ -1069,22 +1129,22 @@ function createCoverageChart(geneInfo,coverageData) {
         d.position = +d.position;
         d.coverage = +d.coverage;
     });
-    
+
     readData.forEach(function(d) {
         d.startPos = +d.startPos;
         d.endPos = +d.endPos;
         d.depth = +d.depth;
         d.score = +d.score;
     });
-        
+
     if (data[0].position != 0) {
         data.unshift({"coverage":0,"position":0});
     }
-    
+
     if (data[data.length-1] != seqLength) {
         data.push({"coverage":0,"position":seqLength});
     }
-    
+
     var margin = {top: 20, right: 60, bottom: 30, left: 20},
         width = 960 - margin.left - margin.right,
         height = 500 - margin.top - margin.bottom,
@@ -1096,7 +1156,7 @@ function createCoverageChart(geneInfo,coverageData) {
 
     var y = d3.scale.linear()
         .range([height, 0]);
-        
+
     var colorScale = d3.scale.log()
         .base(10)
         .range(['#0000ff','#ff0000']);
@@ -1175,11 +1235,11 @@ function createCoverageChart(geneInfo,coverageData) {
 
     x.domain([0, seqLength]);
     y.domain([0, d3.max(data, function(d) { return d.coverage; })]);
-    
+
     scoreExtent = d3.extent(readData, function(d) { return d.score });
     scoreExtent[1] = (scoreExtent[1] > 1e-4 ? scoreExtent[1]:1e-4);
     colorScale.domain(scoreExtent);
-    
+
     svg.append("rect")
         .attr("class", "pane")
         .attr("width", width)
@@ -1217,8 +1277,8 @@ function createCoverageChart(geneInfo,coverageData) {
     draw();
 
     function draw(e) {
-    
-    
+
+
         var yExtent = [0, d3.max(readData.filter( function(d) {
             if ((x(d.startPos) > width) || (x(d.endPos) < 0)) {
                 return false;
@@ -1227,7 +1287,7 @@ function createCoverageChart(geneInfo,coverageData) {
             }
         }), function(d) { return d.depth })];
         var viewedYExtent = yExtent;
-        if (yExtent[1] < 20 || !yExtent[1]) { 
+        if (yExtent[1] < 20 || !yExtent[1]) {
             viewedYExtent[1] = 20;
         } else if (yExtent[1] > 50 && (x(100) - x(0)) > levelOfDetail) {
             if (d3.event.sourceEvent.shiftKey) {
@@ -1277,15 +1337,15 @@ function createCoverageChart(geneInfo,coverageData) {
             .attr("height", function(d) { return (y(0)-y(1)); })
             .attr("clip-path", "url(#clip)")
             .call(zoom);
-            
+
 
 
         svg.select("g.x.axis").call(xAxis);
         svg.select("g.y.axis").transition().duration(200).ease("sin-in-out").call(yAxis);
         svg.select("path.area").attr("d", area);
         svg.select("path.line").attr("d", line);
-    }    
-               
+    }
+
     $('#coverageSvg').show();
     $('#geneTabs li:eq(1) a').tab('show');
 }
@@ -1293,7 +1353,7 @@ function createCoverageChart(geneInfo,coverageData) {
 $('#sunburst_options').click(function(e) {
     e.preventDefault();
     var link = $("#sunburst_options").parent(),
-        sidebar = $("#optionsPane");
+        sidebar = $(".optionsPane");
     if (link.hasClass("active")) {
         link.removeClass("active");
         sidebar.fadeOut();
@@ -1302,4 +1362,3 @@ $('#sunburst_options').click(function(e) {
         sidebar.fadeIn();
     };
 });
-

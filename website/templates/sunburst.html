@@ -20,88 +20,109 @@
       </form>
       <div class="col-lg-8 col-md-8 col-sm-12 col-xs-12 col-lg-push-4 col-md-push-4">
         <div class="row" id="chart"></div>
-        <div class="row" id="optionsPane" style="display:none;">
+        <div class="row optionsPane" style="display:none;">
             <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12">
-                <div class="row optionsRow">
+                <div class="row optionsSection">
                     <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12">
-                        <h4>Navigation</h4>
-                        <button class="btn btn-primary" id="backToRoot">Back To Root</button>
+                        <div class="row headerRow firstHeader">
+                            <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12">
+                                <h5>Navigation</h5>
+                            </div>
+                        </div>
+                        <div class="row optionsRow">
+                            <div class="col-lg-2 col-md-2 col-sm-12 col-xs-12">
+                                <button class="btn btn-primary" id="backToRoot">Back To Root</button>
+                            </div>
+                        </div>
                     </div>
                 </div>
-                <div class="row optionsRow">
+                <div class="row optionsSection">
                     <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12">
-                        <div class="row">
-                            <div class="col-lg-2 col-md-2 col-sm-12 col-xs-12">
-                                <h4>Filters</h4>
-                                <button class="btn btn-primary" id="removeFilters">Remove Filters</button>
+                        <div class="row headerRow">
+                            <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12">
+                                <h5>Filters</h5>
                             </div>
                         </div>
-                        <div class="row">
-                            <div class="col-lg-4 col-md-4 col-sm-12 col-xs-12">
-                                <form id="filterByAbundance">
-                                    <div class="form-group">
-                                        <label for="abundanceAmount" class="control-label">Abundance</label>
-                                        <div class="input-group">
-                                            <input type="text" class="form-control" id="abundanceAmount" placeholder="0.01 (Default)"></input>
-                                            <div class="input-group-btn">
-                                                <button type="submit" class="btn btn-primary">Go</button>
+                        <div class="row optionsRow">
+                            <div class="col-lg-8 col-md-8 col-sm-12 col-xs-12">
+                                <div class="row">
+                                    <div class="col-lg-6 col-md-6 col-sm-12 col-xs-12">
+                                        <form id="filterByAbundance">
+                                            <div class="form-group">
+                                                <label for="abundanceAmount" class="control-label">Abundance</label>
+                                                <div class="input-group">
+                                                    <input type="text" class="form-control" id="abundanceAmount" placeholder="0.01 (Default)"></input>
+                                                    <div class="input-group-btn">
+                                                        <button type="submit" class="btn btn-primary">Go</button>
+                                                    </div>
+                                                </div>
+                                                <input type="radio" class="abundanceRadio" name="abundance" value="rel" checked> Relative Abundance (%)<br>
+                                                <input type="radio" class="abundanceRadio" name="abundance" value="count"> Count
                                             </div>
-                                        </div>
-                                        <input type="radio" class="abundanceRadio" name="abundance" value="rel" checked> Relative Abundance (%)<br>
-                                        <input type="radio" class="abundanceRadio" name="abundance" value="count"> Count
+                                        </form>
                                     </div>
-                                </form>
-                            </div>
-                            <div class="col-lg-4 col-md-4 col-sm-12 col-xs-12">
-                                <form id="filterByName">
-                                    <div class="form-group">
-                                       <label for="filterName" class="control-label">Name or TaxId</label>
-                                        <div class="input-group">
-                                            <input type="text" class="form-control" id="filterName" placeholder="10239"></input>
-                                            <div class="input-group-btn">
-                                                <button type="submit" class="btn btn-primary">Go</button>
+                                    <div class="col-lg-6 col-md-6 col-sm-12 col-xs-12">
+                                        <form id="filterByName">
+                                            <div class="form-group">
+                                               <label for="filterName" class="control-label">Name or TaxId</label>
+                                                <div class="input-group">
+                                                    <input type="text" class="form-control" id="filterName" placeholder="10239"></input>
+                                                    <div class="input-group-btn">
+                                                        <button type="submit" class="btn btn-primary">Go</button>
+                                                    </div>
+                                                </div>
+                                                <input type="radio" class="filterNameRadio" name="filterNameRatio" value="inclusive" checked> Include<br>
+                                                <input type="radio" class="filterNameRadio" name="filterNameRatio" value="exclusive"> Exclude
                                             </div>
-                                        </div>
-                                        <input type="radio" class="filterNameRadio" name="filterNameRatio" value="inclusive" checked> Include<br>
-                                        <input type="radio" class="filterNameRadio" name="filterNameRatio" value="exclusive"> Exclude
+                                        </form>
+                                        <form id="filterFileForm">
+                                          <label for="filterByFile">Taxa File <span class="glyphicon glyphicon-info-sign" data-toggle="popover" data-trigger="hover" data-html='true' title="Example CSV file: " data-content="taxId,included<br>taxa_name,excluded"><span></label>
+                                          <input class="form-control" type="file" id="filterByFile"></input>
+                                        </form>
                                     </div>
-                                </form>
-                                <form id="filterFileForm">
-                                  <label for="filterByFile">Taxa File <span class="glyphicon glyphicon-info-sign" data-toggle="popover" data-trigger="hover" data-html='true' title="Example CSV file: " data-content="taxId,included<br>taxa_name,excluded"><span></label>
-                                  <input class="form-control" type="file" id="filterByFile"></input>
-                                </form>
                                 </div>
-                            <div class="col-lg-4 col-md-4 col-sm-12 col-xs-12">
-                                <form id="filterByAveScore">
-                                    <div class="form-group">
-                                       <label for="filterAveScore" class="control-label">Average Score</label>
-                                        <div class="input-group">
-                                            <input type="text" class="form-control" id="filterAveScore" placeholder="1e-2"></input>
-                                            <div class="input-group-btn">
-                                                <button type="submit" class="btn btn-primary">Go</button>
+                                <div class="row">
+                                    <div class="col-lg-6 col-md-6 col-sm-12 col-xs-12">
+                                        <form id="filterByGene">
+                                            <div class="form-group">
+                                                <label for="geneFilter" class="control-label">Seq ID</label>
+                                                <div class="input-group">
+                                                    <input type="text" class="form-control" id="geneFilter" placeholder="AE014075.1"></input>
+                                                    <div class="input-group-btn">
+                                                        <button type="submit" class="btn btn-primary">Go</button>
+                                                    </div>
+                                                </div>
+                                                <input type="radio" class="filterGeneRadio" name="filterGeneRatio" value="inclusive"> Include<br>
+                                                <input type="radio" class="filterGeneRadio" name="filterGeneRatio" value="exclusive" checked> Exclude
                                             </div>
-                                        </div>
-                                        <input type="radio" class="filterAveScoreRadio" name="filterAveScoreRadio" value="removeHigher" checked> Remove Higher<br>
-                                        <input type="radio" class="filterAveScoreRadio" name="filterAveScoreRadio" value="removeLower"> Remove Lower
+                                        </form>
                                     </div>
-                                </form>
+                                    <div class="col-lg-6 col-md-6 col-sm-12 col-xs-12">
+                                        <form id="filterByAveScore">
+                                            <div class="form-group">
+                                               <label for="filterAveScore" class="control-label">Average Score</label>
+                                                <div class="input-group">
+                                                    <input type="text" class="form-control" id="filterAveScore" placeholder="1e-2"></input>
+                                                    <div class="input-group-btn">
+                                                        <button type="submit" class="btn btn-primary">Go</button>
+                                                    </div>
+                                                </div>
+                                                <input type="radio" class="filterAveScoreRadio" name="filterAveScoreRadio" value="removeHigher" checked> Remove Higher<br>
+                                                <input type="radio" class="filterAveScoreRadio" name="filterAveScoreRadio" value="removeLower"> Remove Lower
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
                             </div>
-                        </div>
-                        <div class="row">
                             <div class="col-lg-4 col-md-4 col-sm-12 col-xs-12">
-                                <form id="filterByGene">
-                                    <div class="form-group">
-                                        <label for="abundanceAmount" class="control-label">Seq ID</label>
-                                        <div class="input-group">
-                                            <input type="text" class="form-control" id="geneFilter" placeholder="AE014075.1"></input>
-                                            <div class="input-group-btn">
-                                                <button type="submit" class="btn btn-primary">Go</button>
-                                            </div>
-                                        </div>
-                                        <input type="radio" class="filterGeneRadio" name="filterGeneRatio" value="inclusive"> Include<br>
-                                        <input type="radio" class="filterGeneRadio" name="filterGeneRatio" value="exclusive" checked> Exclude
-                                    </div>
-                                </form>
+                                <label for="filterPane" class="control-label">Active Filters  <button class="btn btn-primary btn-xs" id="removeFilters">Remove All Filters</button></label>
+                                <div id="filterPane">
+                                    <table class="table table-hover">
+                                        <tbody id="filterTable">
+                                        </tbody>
+                                    </table>
+
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -120,7 +141,7 @@
               <hr>
               <p id="inspect-results"></p>
             </div>
-        </div>        
+        </div>
       </div>
       <div class="col-lg-4 col-md-4 col-sm-12 col-xs-12 col-lg-pull-8 col-md-pull-8" id="taxaTable">
       </div>
@@ -131,8 +152,8 @@
         <br><br><br>
       </div>
     </div>
-    
-    
+
+
     <div class="modal fade bs-example-modal-lg" tabindex="-1" role="dialog" aria-labelledby="myLargeModalLabel" id="taxonModal">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
@@ -145,7 +166,7 @@
                         <li role="presentation" class="active"><a href="#genesTab" aria-controls="home" role="tab" data-toggle="tab">Genes</a></li>
                         <li role="presentation" ><a href="#coverageTab" aria-controls="profile" role="tab" data-toggle="tab">Gene Coverage</a></li>
                     </ul>
-              
+
                     <div class="tab-content">
                         <div role="tabpanel" class="tab-pane active" id="genesTab">
                             <form enctype="multipart/form-data" action="/getCoverage" method="post" id="get_coverage" class="form-manage">
@@ -173,15 +194,15 @@
                             </svg>
                         </div>
                     </div>
-              
-              
-              
+
+
+
 
               </div>
             </div>
         </div>
     </div>
-    
+
   {% end %}
 
   {% block data_scripts %}
