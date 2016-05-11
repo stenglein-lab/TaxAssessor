@@ -26,7 +26,7 @@ $('#manageTabs a[href="#Open"]').click(function (e) {
             processData:false,
             cache:false,
             success:function(resp){
-                location.replace("http://stengleinlab101.cvmbs.colostate.edu:2222/file_report")
+                location.replace("http://stengleinlab101.cvmbs.colostate.edu:2222/sunburst")
             },
             error:function(resp){
                 console.log(resp);
@@ -468,7 +468,7 @@ $('#manageTabs a[href!="#Compare"]').click(function (e) {
     $("#selectAllFiles").hide();
 })
 
-$('#manageTabs a[href="#Upload"]').click(function (e) {
+$('#manageTabs a[href="#AlignUpload"]').click(function (e) {
     currentTab = "upload";
     e.preventDefault();
     $(this).tab('show');
@@ -490,8 +490,9 @@ $('#manageTabs a[href="#Upload"]').click(function (e) {
             contentType:false,
             processData:false,
             cache:false,
+            timeout: 1200000,
             success:function(resp){
-                resp = JSON.parse(resp);
+                resp = JSON.parse(resp);                
                 for (var fileName in resp) {
                     var status = resp[fileName];
                     if (status.indexOf("SUCCESS") > -1) {
@@ -500,6 +501,9 @@ $('#manageTabs a[href="#Upload"]').click(function (e) {
                         uploadError(fileName,status);
                     }
                 }
+                var bar = currentBarContainer.children()[0];
+                bar.className = "";
+                bar.className = "progress-bar-success";
                 setTimeout( function () {
                         currentBarContainer.fadeOut();
                     }, 3000);
@@ -520,7 +524,7 @@ $('#manageTabs a[href="#Upload"]').click(function (e) {
                             if (Math.ceil(ratio) == 100) {
                                 bar.html(fileName+": "+"Upload Finished, Processing Files");
                                 bar.width("100%");
-                                myXhr.upload.removeEventListener('progress');
+                                myXhr.upload.removeEventListener('progress',arguments.callee);
                             } else {
                                 bar.html(fileName+": "+Math.floor(ratio)+"%");
                                 bar.width(Math.floor(ratio)+"%");
@@ -576,7 +580,7 @@ $('#manageTabs a[href="#Upload"]').click(function (e) {
     });
 })
 
-$('#manageTabs a[href!="#Upload"]').click(function (e) {
+$('#manageTabs a[href!="#AlignUpload"]').click(function (e) {
     $('#upload_button').unbind("click");
     $('#clear_upload').unbind("click");
     $('#fileFormat').unbind();
@@ -643,7 +647,7 @@ $(".openFileButton").click( function(e) {
         processData:false,
         cache:false,
         success:function(resp){
-            location.replace("http://stengleinlab101.cvmbs.colostate.edu:2222/file_report")
+            location.replace("http://stengleinlab101.cvmbs.colostate.edu:2222/sunburst")
         },
         error:function(resp){
             console.log(resp);

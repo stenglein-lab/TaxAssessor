@@ -1,9 +1,15 @@
 #!/usr/bin/python
 
 import os
+import sys
+import json
 import multiprocessing
-import TaxPy.inputFile_management.load_file as TaxLoad
+import traceback
+import TaxPy.inputFile_management.load_file2 as TaxLoad
 import TaxPy.db_management.db_wrap as TaxDb
+import TaxPy.db_management.importAlignFileIntoDb as TaxDbImport
+import TaxPy.data_processing.create_tree as TaxTree
+import TaxPy.data_processing.createReports as TaxReports
 from ctypes import c_char_p
 
 # blocking task like querying to MySQL
@@ -15,7 +21,7 @@ def blocking_task(fileInfo,userName):
     p.join()
     return status.value
 
-class AlignFile():
+class ImportManager():
     def __init__(self,userName,fileName=None,fileInfo=None):
         self.fileInfo = fileInfo
         if fileInfo == None:  #if deleting a file
@@ -58,9 +64,19 @@ class AlignFile():
                 cmd = "UPDATE files SET status=%s WHERE username=%s AND filename=%s"
                 cur.execute(cmd,(status,self.userName,self.fileName))
                 db.commit()
+                
+        def handleError(e):
+            exc_type, exc_obj, exc_tb = sys.exc_info()
+            fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
+            print("ERROR: ",exc_type, fname, exc_tb.tb_lineno)
+            traceback.print_exc()
+            self.deleteRecords()
+            return str(e)
+
+            
         try:
             fileBody = self.fileInfo['body']
-        except Exception:
+        except Exception,e:
             status = "Error accessing file"
             return status
 
@@ -77,17 +93,36 @@ class AlignFile():
         
         try:
             updateDbEntryStatus(self,"Processing")
-            TaxLoad.loadFile(self.fileName,fileBody,self.userName,
-                             loadOptions)
+            inputFile = TaxLoad.InputFile(self.fileName,fileBody,self.userName,
+                                          loadOptions)  
+            (reads,taxa) = inputFile.processData()
+            
+            #create tree
+            tree = TaxTree.Tree(taxa)
+            tree = json.dumps(tree.buildTree(1),sort_keys=False)
+            this_dir = os.path.dirname(__file__)
+            with open(this_dir+"/../../uploads/"+self.userName+"/"+
+                    self.fileName+"_tree.json","w") as outFile:
+                outFile.write(tree)       
+             
+            #import data into db
+            dbImport = TaxDbImport.DbImport(reads,self.fileName,self.userName)
+            dbImport.createDbTable()
+            dbImport.importDataIntoDb()   
+            
+            #create reports
+            TaxReports.assessTaxIds(taxa,reads,self.fileName,
+                                                     self.userName)
+            
+            
+            
             status = "SUCCESS"
             updateDbEntryStatus(self,"Ready")           
-        except Exception,e:
-            print e
-            self.deleteRecords()
-            status = str(e)
+        except Exception as e:
+            status = handleError(e)
+            
         return status
                 
-            
     def deleteRecords(self):
         with TaxDb.openDb("TaxAssessor_Users") as db, \
                               TaxDb.cursor(db) as cur:

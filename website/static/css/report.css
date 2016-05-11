@@ -1,18 +1,29 @@
 
-.axis path,
-.axis line {
-	fill: none;
-	stroke: black;
-	shape-rendering: crispEdges;
-}
-.axis text {
-	font-family: sans-serif;
-	font-size: 11px;
+path { 
+    stroke: steelblue;
+    stroke-width: 2;
+    fill: none;
 }
 
-rect {
-    fill: #00004C;
+.axis path,
+.axis line {
+    fill: none;
+    stroke: grey;
+    stroke-width: 1;
+    shape-rendering: crispEdges;
 }
-rect:hover{
-	fill: orange;
+
+.line {
+    stroke: steelblue;
+}
+
+.hiddenRow {
+    padding: 0 !important;
+}
+
+.hiddenTable {
+    padding: 0px;
+    margin: 0px;
+    max-height: 300px;
+    overflow: scroll;
 }

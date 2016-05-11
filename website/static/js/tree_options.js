@@ -1,10 +1,11 @@
 var inspectOffset = 0;
 //Functions used for inspecting individual nodes
+var nRows
 function CreateInspectTable (json_data) {
     $('#inspect-container').show();
     $('#inspected-taxId').html(json_data.name);
-    var nRows = json_data.status,
-        lowOffset = inspectOffset + 1,
+    nRows = json_data.status;
+    var lowOffset = inspectOffset + 1,
         highOffset = inspectOffset + 1000;
     if (nRows > 1000) {
         $('#offset_buttons').show();
@@ -15,7 +16,7 @@ function CreateInspectTable (json_data) {
         $('#inspected-status-small').html("Showing "+nRows+" alignments");
     }
         
-    var myTable = "<div class='table-responsive'><table class='table table-striped inspect-table'><thead><tr><th>queryId</th><th>subjectId</th><th>%Ident</th><th>AlignLen</th><th>nMisMatch</th><th>nGapOpen</th><th>qStart</th><th>qEnd</th><th>subStart</th><th>subEnd</th><th>eVal</th><th>bitScore</th></tr></thead><tbody>"
+    var myTable = "<div class='table-responsive'><table class='table table-striped inspect-table' ><thead><tr><th>queryId</th><th>subjectId</th><th>%Ident</th><th>AlignLen</th><th>nMisMatch</th><th>nGapOpen</th><th>qStart</th><th>qEnd</th><th>subStart</th><th>subEnd</th><th>eVal</th><th>bitScore</th></tr></thead><tbody>"
     var data;
     for (var i = 0; i < json_data.info.length; i++) {
         myTable += "<tr>"
@@ -28,6 +29,17 @@ function CreateInspectTable (json_data) {
     myTable += "</tbody></table></div>";
     $('#inspect-results').html(myTable);
 }
+
+$('#query_offset_lower').on('click', function () {
+
+});
+
+$('#query_offset_raise').on('click', function () {
+        $('#inspectQueryOffset').value += 1000;
+        $('#inspectForm').submit();
+});
+
+
 
 $('#inspectForm').on('submit', function( event) {
     inspectOffset = 0;

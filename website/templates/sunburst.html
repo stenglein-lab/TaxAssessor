@@ -6,7 +6,7 @@
   {% end %}
 
   {% block data_navbar %}
-    <li><a href="#" id="vis_options">Visualization Options</a></li>
+    <li><a href="#" id="sunburst_options">Visualization Options</a></li>
   {% end %}
 
 
@@ -18,69 +18,170 @@
         <input type="text" name="taxName" id="inspectTaxNameInput" style="display:none;">
         <input type="text" name="offset" id="inspectQueryOffset" style="display:none;" value="0">
       </form>
-      <div class="col-lg-12 col-md-12" id="chart">
-      </div>
-      <div class="col-lg-2 col-md-2 col-lg-pull-10 col-md-pull-10" id="vis_options_sidebar" style="display: none;">
-        <h4>Modify View</h4>
-        <div class="well">
-          <h5>Node Scale</h5>
-          <div class="radio">
-            <label>
-              <input type="radio" name="circleScaleRadios" id="circleLogRadius" value="log" checked>Log
-            </label>
-          </div>
-          <div class="radio">
-            <label>
-              <input type="radio" name="circleScaleRadios" id="circleLinearRadius" value="linear">Linear
-            </label>
-          </div>
-          <hr style="border-color: #A9A9A9;">
-          <div class="text-center">
-            <button class="btn btn-primary btn-responsive" id="reset_SVG">Reset View</button>
-          </div>
-        </div>
-        <h4>Filters</h4>
-        <div class="well">
-          <form>
-            <h5>e-Value</h5>
-            <div class="input-group">
-              <input type="text" class="form-control" placeholder="ex 1e-5">
-              <span class="input-group-btn">
-              <button class="btn btn-primary" type="button">Go</button>
-              </span>
+      <div class="col-lg-8 col-md-8 col-sm-12 col-xs-12 col-lg-push-4 col-md-push-4">
+        <div class="row" id="chart"></div>
+        <div class="row" id="optionsPane" style="display:none;">
+            <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12">
+                <div class="row optionsRow">
+                    <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12">
+                        <h4>Navigation</h4>
+                        <button class="btn btn-primary" id="backToRoot">Back To Root</button>
+                    </div>
+                </div>
+                <div class="row optionsRow">
+                    <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12">
+                        <div class="row">
+                            <div class="col-lg-2 col-md-2 col-sm-12 col-xs-12">
+                                <h4>Filters</h4>
+                                <button class="btn btn-primary" id="removeFilters">Remove Filters</button>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-lg-4 col-md-4 col-sm-12 col-xs-12">
+                                <form id="filterByAbundance">
+                                    <div class="form-group">
+                                        <label for="abundanceAmount" class="control-label">Abundance</label>
+                                        <div class="input-group">
+                                            <input type="text" class="form-control" id="abundanceAmount" placeholder="0.01 (Default)"></input>
+                                            <div class="input-group-btn">
+                                                <button type="submit" class="btn btn-primary">Go</button>
+                                            </div>
+                                        </div>
+                                        <input type="radio" class="abundanceRadio" name="abundance" value="rel" checked> Relative Abundance (%)<br>
+                                        <input type="radio" class="abundanceRadio" name="abundance" value="count"> Count
+                                    </div>
+                                </form>
+                            </div>
+                            <div class="col-lg-4 col-md-4 col-sm-12 col-xs-12">
+                                <form id="filterByName">
+                                    <div class="form-group">
+                                       <label for="filterName" class="control-label">Name or TaxId</label>
+                                        <div class="input-group">
+                                            <input type="text" class="form-control" id="filterName" placeholder="10239"></input>
+                                            <div class="input-group-btn">
+                                                <button type="submit" class="btn btn-primary">Go</button>
+                                            </div>
+                                        </div>
+                                        <input type="radio" class="filterNameRadio" name="filterNameRatio" value="inclusive" checked> Include<br>
+                                        <input type="radio" class="filterNameRadio" name="filterNameRatio" value="exclusive"> Exclude
+                                    </div>
+                                </form>
+                                <form id="filterFileForm">
+                                  <label for="filterByFile">Taxa File <span class="glyphicon glyphicon-info-sign" data-toggle="popover" data-trigger="hover" data-html='true' title="Example CSV file: " data-content="taxId,included<br>taxa_name,excluded"><span></label>
+                                  <input class="form-control" type="file" id="filterByFile"></input>
+                                </form>
+                                </div>
+                            <div class="col-lg-4 col-md-4 col-sm-12 col-xs-12">
+                                <form id="filterByAveScore">
+                                    <div class="form-group">
+                                       <label for="filterAveScore" class="control-label">Average Score</label>
+                                        <div class="input-group">
+                                            <input type="text" class="form-control" id="filterAveScore" placeholder="1e-2"></input>
+                                            <div class="input-group-btn">
+                                                <button type="submit" class="btn btn-primary">Go</button>
+                                            </div>
+                                        </div>
+                                        <input type="radio" class="filterAveScoreRadio" name="filterAveScoreRadio" value="removeHigher" checked> Remove Higher<br>
+                                        <input type="radio" class="filterAveScoreRadio" name="filterAveScoreRadio" value="removeLower"> Remove Lower
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-lg-4 col-md-4 col-sm-12 col-xs-12">
+                                <form id="filterByGene">
+                                    <div class="form-group">
+                                        <label for="abundanceAmount" class="control-label">Seq ID</label>
+                                        <div class="input-group">
+                                            <input type="text" class="form-control" id="geneFilter" placeholder="AE014075.1"></input>
+                                            <div class="input-group-btn">
+                                                <button type="submit" class="btn btn-primary">Go</button>
+                                            </div>
+                                        </div>
+                                        <input type="radio" class="filterGeneRadio" name="filterGeneRatio" value="inclusive"> Include<br>
+                                        <input type="radio" class="filterGeneRadio" name="filterGeneRatio" value="exclusive" checked> Exclude
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
-          </form>
-          <hr style="border-color: #A9A9A9;">
-          <h5>Count</h5>
-          <div class="input-group">
-            <input type="text" class="form-control" id="set_count_value" placeholder="1">
-            <span class="input-group-btn">
-            <button class="btn btn-primary" id="set_count_button" type="button">Go</button>
-            </span>
-          </div>          
         </div>
+        <div class="row">
+            <div class="inspect-container" id="inspect-container" style="display:none;">
+              <h3 id="inspected-taxId">Inspected TaxId</h3>
+              <h3 id="inspected-status"><small id="inspected-status-small"></small></h3>
+              <span id="offset_buttons" style="display: none;">
+                <button id="query_offset_lower" class="glyphicon glyphicon-menu-left"></button>
+                <button id="query_offset_raise" class="glyphicon glyphicon-menu-right"></button>
+              </span>
+              <a type="button" class="close glyphicon glyphicon-remove" id="close-inspect" style="color:#000" href="#"></a>
+              <hr>
+              <p id="inspect-results"></p>
+            </div>
+        </div>        
+      </div>
+      <div class="col-lg-4 col-md-4 col-sm-12 col-xs-12 col-lg-pull-8 col-md-pull-8" id="taxaTable">
       </div>
     </div>
-    <div class="row">
-      <div class="col-lg-12 col-md-12">
-        <div class="inspect-container" id="inspect-container" style="display:none">
-          <h3 id="inspected-taxId">Inspected TaxId</h3>
-          <h3 id="inspected-status"><small id="inspected-status-small"></small></h3>
-          <span id="offset_buttons" style="display: none;">
-            <button id="query_offset_lower" class="glyphicon glyphicon-menu-left"></button>
-            <button id="query_offset_raise" class="glyphicon glyphicon-menu-right"></button>
-          </span>
-          <a type="button" class="close glyphicon glyphicon-remove" id="close-inspect" style="color:#000" href="#"></a>
-          <hr>
-          <p id="inspect-results"></p>
-        </div>
-      </div>
-    </div>
+
     <div class="row">
       <div class="col-lg-12 col-md-12">
         <br><br><br>
       </div>
     </div>
+    
+    
+    <div class="modal fade bs-example-modal-lg" tabindex="-1" role="dialog" aria-labelledby="myLargeModalLabel" id="taxonModal">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                    <h4 class="modal-title" id="taxonModalTitle"></h4>
+                </div>
+                <div class="modal-body" id="geneModalBody">
+                    <ul class="nav nav-tabs" role="tablist" id="geneTabs">
+                        <li role="presentation" class="active"><a href="#genesTab" aria-controls="home" role="tab" data-toggle="tab">Genes</a></li>
+                        <li role="presentation" ><a href="#coverageTab" aria-controls="profile" role="tab" data-toggle="tab">Gene Coverage</a></li>
+                    </ul>
+              
+                    <div class="tab-content">
+                        <div role="tabpanel" class="tab-pane active" id="genesTab">
+                            <form enctype="multipart/form-data" action="/getCoverage" method="post" id="get_coverage" class="form-manage">
+                            {% raw xsrf_form_html() %}
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th style="width:10%">#</th>
+                                        <th style="width:60%">Gene Name</th>
+                                        <th style="width:10%">Coverage</th>
+                                        <th style="width:10%">GeneID</th>
+                                        <th style="width:10%">Present in x Reads</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="geneTableBody">
+                                </tbody>
+                            </table>
+                            </form>
+                            <button type="button" class="btn btn-secondary navigateGenes" id="reverseGenes" value="reverse">-20</button>
+                            <button type="button" class="btn btn-secondary navigateGenes" id="forwardGenes" value="forward">+20</button>
+                        </div>
+                        <div role="tabpanel" class="tab-pane" id="coverageTab">
+                            <h4 id="coverageTitle">No gene selected</h4>
+                            <svg preserveAspectRatio="xMinYMin meet" viewBox="0 0 1000 500" id="coverageSvg" hidden>
+                            </svg>
+                        </div>
+                    </div>
+              
+              
+              
+
+              </div>
+            </div>
+        </div>
+    </div>
+    
   {% end %}
 
   {% block data_scripts %}

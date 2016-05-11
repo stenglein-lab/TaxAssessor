@@ -16,7 +16,7 @@
             </ul>
         </li>
             {% if openFile != None %}
-                <li><a href="/file_report">Return to Open File</a></li>
+                <li><a href="/sunburst">Return to Open File</a></li>
             {% end %}
         {% else %}
         <li class="dropdown">
@@ -39,7 +39,14 @@
                 <ul class="nav nav-tabs" role="tablist" id="manageTabs">
                     <li role="presentation" class="active"><a href="#Open" aria-controls="Open" role="tab" data-toggle="tab">Open</a></li>
                     <li role="presentation"><a href="#Compare" aria-controls="Compare" role="tab" data-toggle="tab">Compare</a></li>
-                    <li role="presentation"><a href="#Upload" aria-controls="Upload" role="tab" data-toggle="tab">Upload</a></li>
+                    <!--<li role="presentation" class="dropdown">
+                        <a class="dropdown-toggle" data-toggle="dropdown" href="#" role="button" aria-haspopup="true" aria-expanded="false">Upload<span class="caret"></span></a>
+                        <ul class="dropdown-menu">
+                            <li><a href="#AlignUpload" aria-controls="Upload" role="tab" data-toggle="tab">Alignment</a></li>
+                            <li><a href="#MapUpload" aria-controls="Upload" role="tab" data-toggle="tab">Mapping</a></li>
+                        </ul>   
+                    </li>-->
+                    <li role="presentation"><a href="#AlignUpload" aria-controls="AlignUpload" role="tab" data-toggle="tab">Upload</a></li>
                     <li role="presentation"><a href="#Delete" aria-controls="Delete" role="tab" data-toggle="tab">Delete</a></li>
                     <li role="presentation"><input type="text" id="fileName_search" class="form-control" placeholder="Search"></li>
                     <li role="presentation" class="pull-right" style="display: none;" id="compare_sets_button_container"><button class="btn btn-primary btn-compare disabled" id="compare_sets_submit">Compare</button></li>
@@ -113,8 +120,9 @@
                         </form>
                     </div>
                     <!--UPLOAD-->
-                    <div role="tabpanel" class="tab-pane" id="Upload">
+                    <div role="tabpanel" class="tab-pane" id="AlignUpload">
                         <br>
+                        <h4>Alignment File Upload</h4>
                         <div id="bar_container">
                         </div>
                         <div id="uploadErrorMessage">
@@ -171,6 +179,10 @@
                                                         <input type="hidden" value="False" name="useLca" >
                                                         <input type="checkbox" value="True" name="useLca" id="useLca" checked>  Use LCA
                                                     </label>
+                                                    <label for="useAccordion">
+                                                        <input type="hidden" value="False" name="useAccordion" >
+                                                        <input type="checkbox" value="True" name="useAccordion" id="useAccordion" checked>  Accordion Data (NYI)
+                                                    </label>
                                                     </div>
                                                 </div>
                                                 <div class="col-lg-6 col-md-6">
@@ -206,15 +218,20 @@
                                                             <!--<div id="additionalDelimiters">
                                                             </div>-->
                                                         </div>
+                                                        <div class="optionText">
+                                                            <label for="readNameIndex">Read Name Index</label>
+                                                            <input class="form-control" placeholder="1" id="readNameIndex" name="readNameIndex"></input>
+                                                            <label> 
+                                                        </div>
                                                     </div>
                                                     <div class="col-lg-3 col-md-3">
                                                         <div class="optionText">
-                                                            <label for="giIndex">GI Index</label>
-                                                            <input class="form-control" placeholder="2" id="giIndex" name="giIndex"></input>
-                                                            <label for="giDelimiter">GI Delimiter</label>
-                                                            <input class="form-control" placeholder="Optional" id="giDelimiter" name="giDelimiter"></input>
-                                                            <label for="giSubIndex">GI Sub-Index</label>
-                                                            <input class="form-control" placeholder="Optional" id="giSubIndex" name="giSubIndex"></input>
+                                                            <label for="seqIdIndex">SeqId Index</label>
+                                                            <input class="form-control" placeholder="2" id="seqIdIndex" name="seqIdIndex"></input>
+                                                            <label for="seqIdDelimiter">SeqId Delimiter</label>
+                                                            <input class="form-control" placeholder="Optional" id="seqIdDelimiter" name="seqIdDelimiter"></input>
+                                                            <label for="seqIdSubIndex">SeqId Sub-Index</label>
+                                                            <input class="form-control" placeholder="Optional" id="seqIdSubIndex" name="seqIdSubIndex"></input>
                                                         </div>
                                                     </div>
                                                     <div class="col-lg-3 col-md-3">

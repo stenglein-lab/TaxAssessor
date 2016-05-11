@@ -297,7 +297,6 @@ class Upload(BaseHandler):
         start = time.time() 
         status = {}
         loadOptions = self.getLoadOptions()
-        return
         
         for file in self.request.files['upFile']:
             try:
@@ -305,8 +304,9 @@ class Upload(BaseHandler):
                 print "Filename: "+fileName
                 userName = self.get_current_username()
                 #run_background(TaxFileManager.blocking_task, self.on_complete, (fileInfo,userName))
-                alignFile = TaxFileManager.AlignFile(userName,fileInfo=file)
-                status[fileName] = alignFile.importFile(loadOptions)
+                importManager = TaxFileManager.ImportManager(userName,
+                                                             fileInfo=file)
+                status[fileName] = importManager.importFile(loadOptions)
                 print fileName+": "+status[fileName]
                 print "=------------------="
             except Exception,e:
@@ -321,23 +321,25 @@ class Upload(BaseHandler):
         options["useLca"] = ("True" == self.get_argument('useLca'))
         fileFormat = self.get_argument('fileFormat')
         if fileFormat[0:5] == "Blast":
+            options["readNameIndex"] = 0
             options["fileFormat"] = "blast"
-            options["delimeter"] = "\t"
-            options["giIndex"] = 2
-            options["giDelimiter"] = "|"
-            options["giSubIndex"] = 2
-            options["scoreIndex"] = 11
+            options["delimiter"] = "\t"
+            options["seqIdIndex"] = 1
+            options["seqIdDelimiter"] = "|"
+            options["seqIdSubIndex"] = 1
+            options["scoreIndex"] = 10
             options["scorePreference"] = "lower"
             options["header"] = ("QueryID\tSubjectID\t%Ident\tAlignLen\t"
                     "nGapOpen\tqStart\tqEnd\tsubStart\tsubEnd\teVal\tbitScore")
             
         elif fileFormat[0:3] == "SAM":
+            options["readNameIndex"] = 0
             options["fileFormat"] = "sam"
-            options["delimeter"] = "\t"
-            options["giIndex"] = 3
-            options["giDelimiter"] = "|"
-            options["giSubIndex"] = 2
-            options["scoreIndex"] = 5
+            options["delimiter"] = "\t"
+            options["seqIdIndex"] = 2
+            options["seqIdDelimiter"] = "|"
+            options["seqIdSubIndex"] = 1
+            options["scoreIndex"] = 4
             options["scorePreference"] = "higher"
             options["header"] = ("QNAME\tFLAG\tRNAME\tPOS\tMAPQ\tCIGAR\tRNEXT\t"
                                  "PNEXT\tTLEN\tSEQ\tQUAL")
@@ -346,18 +348,23 @@ class Upload(BaseHandler):
             options["fileFormat"] = "custom"
             delimiter = self.get_argument("delimiter")
             if delimiter == "Custom":
-                options["delimeter"] = str(self.get_argument("customDelimiter"))
+                options["delimiter"] = str(self.get_argument("customDelimiter"))
             elif delimiter == "Tab":
-                options["delimeter"] = "\t"
+                options["delimiter"] = "\t"
             elif delimiter == "Space":
                 options["delimiter"] = " "
             elif delimiter == "Comma":
                 options["delimiter"] = ","
-            options["giIndex"] = int(self.get_argument("giIndex"))
-            options["giDelimiter"] = str(self.get_argument("giDelimiter"))
-            options["giSubIndex"] = int(self.get_argument("giSubIndex"))
-            options["scoreIndex"] = int(self.get_argument("scoreIndex"))
-            options["scorePreference"] = str(self.get_argument("scorePref"))
+            options["readNameIndex"] = int(self.get_argument("readNameIndex"))-1
+            options["seqIdIndex"] = int(self.get_argument("seqIdIndex"))-1
+            if self.get_argument("seqIdDelimiter") != "":
+                options["seqIdDelimiter"] = str(self.get_argument("seqIdDelimiter"))
+                options["seqIdSubIndex"] = int(self.get_argument("seqIdSubIndex"))-1
+            else:
+                options["seqIdDelimiter"] = None
+                options["seqIdSubIndex"] = None
+            options["scoreIndex"] = int(self.get_argument("scoreIndex"))-1
+            options["op"] = str(self.get_argument("scorePref"))
             options["header"] = str(self.get_argument("headerData"))
             
         print options
@@ -378,8 +385,9 @@ class Open(BaseHandler):
     @tornado.web.authenticated
     def post(self):
         fileName = self.get_argument("fileName")
-        self.set_secure_cookie("TaxOpenFiles",fileName,expires_days=10)
-        self.redirect("/file_report")
+        self.set_secure_cookie("TaxOpenFiles",fileName,expires_days=1)
+        #self.redirect("/file_report")
+        self.redirect("/sunburst")
 
 class Close(BaseHandler):
     @tornado.web.authenticated
@@ -403,7 +411,7 @@ class Delete(BaseHandler):
         fileName = self.get_argument("fileName")
         userName = self.get_current_username()
         
-        alignFile = TaxFileManager.AlignFile(userName,fileName=fileName)
+        alignFile = TaxFileManager.ImportManager(userName,fileName=fileName)
         alignFile.deleteRecords()
 
         openFile = self.get_current_fileName()
@@ -441,6 +449,7 @@ class InspectReads(BaseHandler):
     def post(self):
         taxId = self.get_argument("taxId")
         taxName = self.get_argument("taxName")
+        offset = self.get_argument("offset")
         
         userName = self.get_current_username()
         fileName = self.get_current_fileName()
@@ -448,7 +457,7 @@ class InspectReads(BaseHandler):
         fileId   = "t"+str(fileId)
         
         readLines,status = TaxReads.retrieveReads(userName,fileName,
-                                                  fileId,taxId)
+                                                  fileId,taxId,offset)
 
         alignInfo = {"name":taxName,"taxId":taxId,"status":status,
                      "info":readLines}
@@ -530,11 +539,23 @@ class CompareSets(BaseHandler):
         if (len(set1) >= 3) and (len(set2) >= 3):
             pass
         elif (len(set1) >= 3) or (len(set2) >= 3):
-            
             self.render("compare_trees.html",userName = userName,user=firstName,
                         compareTrees=resultingTree,fileNames=set1+set2)
 
+class GetCoverage(BaseHandler):
+    @tornado.web.authenticated
+    def post(self):
+        seqId = self.get_argument("seqId")
+        taxId = self.get_argument("taxId")
+        print taxId
+        userName = self.get_current_username()
+        fileName = self.get_current_fileName()
+        fileId   = self.get_current_fileName_tableName(userName,fileName)
+        fileId   = "t"+str(fileId)       
+        data = TaxReads.retrieveGiAssociatedReads(userName,fileName,
+                                                  fileId,seqId,taxId)
 
+        self.write(data)
 
 
 

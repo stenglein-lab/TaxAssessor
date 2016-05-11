@@ -1,41 +1,48 @@
 {% extends "file_open.html" %}
     {% block data_head %}
-    <link href="{{ static_url("css/report.css") }}" rel="stylesheet">
+        <link href="{{ static_url("css/report.css") }}" rel="stylesheet">
     {% end %}
 
 
     {% block data_body %}
     <div class="row">
         <div class="col-lg-12 col-md-12">
-            <h3 id="alignments">Report: Alignments</h3>
+            <h3 id="Taxa">Taxa Report</h3>
         </div>
     </div>
     <div class="row">
-        <div class="col-lg-4 col-md-4">
-            <table class="table table-striped"></div>
-                <thead>
-                    <tr>
-                        <th>Name</th>
-                        <th>Value</th>
-                    </tr>
-                </thead>
-                <tbody id="align-table-data">
-                </tbody>
-            </table>
-        </div>
-        <div class="col-lg-8 col-md-8">
-            <h4>Gene Distribution Across Reads</h4>
-            <div class="gi_chart" id="gi_chart"></div>
+        <div class="col-lg-12 col-md-12">
+            <form enctype="multipart/form-data" action="/getCoverage" method="post" id="get_coverage" class="form-manage">
+                {% raw xsrf_form_html() %}
+                <div id="taxaTableContainer">
+                </div>
+            </form>
         </div>
     </div>       
-    <div class="row">
-        <div class="col-lg-12 col-md-12">
-            <h3 id="taxonomy">Report: Taxonomy</h3>
+
+    
+    <div class="modal fade bs-example-modal-lg" tabindex="-1" role="dialog" aria-labelledby="myLargeModalLabel">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+              <div class="modal-header">
+                  <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                  <h4 class="modal-title" id="coverageModalTitle"></h4>
+              </div>
+              <div class="modal-body" id="coverageModalBody">
+                  <div class="svg-container">
+                      <svg preserveAspectRatio="xMinYMin meet" viewBox="0 0 1000 500" id="coverageSvg">
+                      </svg>
+                  </div>
+              </div>
+            </div>
         </div>
-    </div> 
+    </div>
+    
+    
+    
     {% end %} 
     
     {% block data_scripts %}
         <script src="{{ static_url('js/tax_namespace.js') }}"></script>
-        <script src="{{ static_url('js/report.js') }}"></script>
+        <script src="{{ static_url('js/taxa_report.js') }}"></script>
     {% end %}

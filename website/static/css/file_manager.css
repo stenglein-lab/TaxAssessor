@@ -12,6 +12,14 @@
     line-height:30px;
 }
 
+.progress-bar-success {
+    overflow:hidden;
+    white-space:nowrap;
+    line-height:30px;
+    padding-left: 10px;
+    color: white;
+}
+
 #fileName_search {
     margin-top: 3px;
 }
