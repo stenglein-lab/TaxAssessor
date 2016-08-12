@@ -1,3 +1,5 @@
+CREATE DATABASE TaxAssessor_Refs;
+CREATE DATABASE TaxAssessor_Alignments;
 CREATE DATABASE TaxAssessor_Users;
 
 USE TaxAssessor_Users;
@@ -46,4 +48,28 @@ CREATE TABLE fileSets   (username VARCHAR(50) NOT NULL,
                          PRIMARY KEY (uniqueId),
                          INDEX (username,setname));
 
-CREATE DATABASE TaxAssessor_Alignments;
+Use TaxAssessor_Refs;
+
+CREATE TABLE seqIdToTaxId_NCBI   (accession VARCHAR(30) NOT NULL,
+                                  accessionVersion VARCHAR(32) NOT NULL,
+                                  taxId INT(10) NOT NULL,
+                                  gi INT(20) NOT NULL,
+				                  INDEX (accessionVersion),
+                                  INDEX (gi));
+
+CREATE TABLE GiTax_NCBI (gi INT(20) NOT NULL,
+                         taxID INT(20) NOT NULL,
+                         PRIMARY KEY (gi));
+
+CREATE TABLE TaxNames_NCBI (taxID INT(20) NOT NULL,
+                            name VARCHAR(120) NOT NULL,
+                            PRIMARY KEY (taxID));
+
+CREATE TABLE taxIdNodes_NCBI (child INT(11) NOT NULL,
+                              parent INT(11) NOT NULL,
+                              PRIMARY KEY (child),
+                              INDEX (parent));
+
+CREATE TABLE Taxon_Rank (taxId INT(20) NOT NULL,
+                         rank  INT(20) NOT NULL,
+                         PRIMARY KEY (taxId));
