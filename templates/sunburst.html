@@ -1,0 +1,263 @@
+{% extends "file_open.html" %}
+
+{% block data_head %}
+    <link href="{{ static_url("css/sunburst.css") }}" rel="stylesheet">
+    <link href="{{ static_url("css/d3-context-menu.css") }}" rel="stylesheet">
+{% end %}
+
+{% block data_navbar %}
+    <!--<li><a href="#" id="sunburst_options">Visualization Options</a></li>-->
+{% end %}
+
+
+{% block data_body %}
+    <div class="row">
+        <form target="_blank" enctype="multipart/form-data" action="/inspect" method="post" id="inspectForm">
+            {% raw xsrf_form_html() %}
+            <input type="text" name="taxId" id="inspectTaxIdInput" style="display:none;">
+            <input type="text" name="taxName" id="inspectTaxNameInput" style="display:none;">
+            <input type="text" name="offset" id="inspectQueryOffset" style="display:none;">
+        </form>
+        <form enctype="multipart/form-data" action="/exportSeqData" method="post" id="exportForm">
+            {% raw xsrf_form_html() %}
+            <input type="text" name="taxId" id="exportTaxIdInput" style="display:none;">
+            <input type="text" name="taxIds" id="exportTaxIdsInput" style="display:none;">
+            <input type="text" name="seqId" id="exportSeqIdInput" style="display:none;">
+            <input type="text" name="readsOrSeqs" id="exportReadsOrSeqs" style="display:none;">
+        </form>
+        <div class="col-lg-8 col-md-8 col-sm-12 col-xs-12 col-lg-push-4 col-md-push-4">
+            <div class="row" id="chart"></div>
+            <div class="row optionsPane">
+                <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12">
+                    <div class="row optionsSection">
+                        <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12">
+                            <div class="row headerRow firstHeader">
+                                <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12">
+                                    <h5>Navigation</h5>
+                                </div>
+                            </div>
+                            <div class="row optionsRow">
+                                <div class="col-lg-2 col-md-2 col-sm-12 col-xs-12">
+                                    <button class="btn btn-primary" id="backToRoot">Back To Root</button>
+                                </div>
+                                <div class="col-lg-3 col-md-3 col-sm-12 col-xs-12">
+                                    <input type="text" class="form-control" id="searchForTaxa" placeholder="Navigate to Taxon"></input>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row optionsSection">
+                        <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12">
+                            <div class="row headerRow">
+                                <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12">
+                                    <h5>Export Visible</h5>
+                                </div>
+                            </div>
+                            <div class="row optionsRow">
+                                <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12">
+                                    <button type="button" class="btn btn-primary exportVisibleButton" value='seq'>Reads</button>
+                                    <button type="button" class="btn btn-primary exportVisibleButton" value='map'>Alignments</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row optionsSection">
+                        <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12">
+                            <div class="row headerRow">
+                                <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12">
+                                    <h5>Filters</h5>
+                                </div>
+                            </div>
+                            <div class="row optionsRow">
+                                <div class="col-lg-8 col-md-8 col-sm-12 col-xs-12">
+                                    <div class="row">
+                                        <div class="col-lg-6 col-md-6 col-sm-12 col-xs-12">
+                                            <form id="filterByAbundance">
+                                                <div class="form-group">
+                                                    <label for="abundanceAmount" class="control-label">Abundance</label>
+                                                    <div class="input-group">
+                                                        <input type="text" class="form-control" id="abundanceAmount" placeholder="0.01 (Default)"></input>
+                                                        <div class="input-group-btn">
+                                                            <button type="submit" class="btn btn-primary">Go</button>
+                                                        </div>
+                                                    </div>
+                                                    <input type="radio" class="abundanceRadio" name="abundance" value="rel" checked> Relative Abundance (%)<br>
+                                                    <input type="radio" class="abundanceRadio" name="abundance" value="count"> Count
+                                                </div>
+                                            </form>
+                                        </div>
+                                        <div class="col-lg-6 col-md-6 col-sm-12 col-xs-12">
+                                            <form id="filterByAveScore">
+                                                <div class="form-group">
+                                                   <label for="filterAveScore" class="control-label">Average Score</label>
+                                                    <div class="input-group">
+                                                        <input type="text" class="form-control" id="filterAveScore" placeholder="1e-2"></input>
+                                                        <div class="input-group-btn">
+                                                            <button type="submit" class="btn btn-primary">Go</button>
+                                                        </div>
+                                                    </div>
+                                                    <input type="radio" class="filterAveScoreRadio" name="filterAveScoreRadio" value="removeHigher" checked> Remove Higher<br>
+                                                    <input type="radio" class="filterAveScoreRadio" name="filterAveScoreRadio" value="removeLower"> Remove Lower
+                                                </div>
+                                            </form>
+                                        </div>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-lg-6 col-md-6 col-sm-12 col-xs-12">
+                                            <form id="filterByGeneForm">
+                                                {% raw xsrf_form_html() %}
+                                                <div class="form-group">
+                                                    <label for="geneFilter" class="control-label">Seq ID</label>
+                                                    <div class="input-group">
+                                                        <input type="text" class="form-control" id="geneFilter" name="seqId" placeholder="GI or Accession.Version"></input>
+                                                        <div class="input-group-btn">
+                                                            <button type="submit" class="btn btn-primary">Go</button>
+                                                        </div>
+                                                    </div>
+                                                    <input type="radio" class="filterGeneRadio" name="filterGeneRadio" value="inclusive"> Include<br>
+                                                    <input type="radio" class="filterGeneRadio" name="filterGeneRadio" value="exclusive" checked> Exclude
+                                                </div>
+                                            </form>
+                                            <form id="filterFileGeneForm">
+                                              <label for="filterGeneByFile">Gene File <span class="glyphicon glyphicon-info-sign" data-toggle="popover" data-trigger="hover" data-html='true' title="Example CSV file: " data-content="GI,included<br>Accession.Version,excluded"><span></label>
+                                              <input class="form-control" type="file" id="filterGeneByFile"></input>
+                                            </form>
+                                        </div>
+                                        <div class="col-lg-6 col-md-6 col-sm-12 col-xs-12">
+                                            <form id="filterByName">
+                                                <div class="form-group">
+                                                   <label for="filterName" class="control-label">Name or TaxId</label>
+                                                    <div class="input-group">
+                                                        <input type="text" class="form-control" id="filterName" placeholder="10239"></input>
+                                                        <div class="input-group-btn">
+                                                            <button type="submit" class="btn btn-primary">Go</button>
+                                                        </div>
+                                                    </div>
+                                                    <input type="radio" class="filterNameRadio" name="filterNameRatio" value="inclusive" checked> Include<br>
+                                                    <input type="radio" class="filterNameRadio" name="filterNameRatio" value="exclusive"> Exclude
+                                                </div>
+                                            </form>
+                                            <form id="filterFileForm">
+                                              <label for="filterByFile">Taxa File <span class="glyphicon glyphicon-info-sign" data-toggle="popover" data-trigger="hover" data-html='true' title="Example CSV file: " data-content="taxId,included<br>taxa_name,excluded"><span></label>
+                                              <input class="form-control" type="file" id="filterByFile"></input>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-lg-4 col-md-4 col-sm-12 col-xs-12">
+                                    <label for="filterPane" class="control-label">Active Filters  <button class="btn btn-primary btn-xs" id="removeFilters">Remove All Filters</button></label>
+                                    <div id="filterPane">
+                                        <table class="table table-hover">
+                                            <tbody id="filterTable">
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-lg-12 col-md-12">
+                    <div class="inspect-container" id="inspect-container" style="display:none;">
+                        <h3 id="inspected-taxId">Inspected TaxId</h3>
+                        <a type="button" class="close glyphicon glyphicon-remove" id="close-inspect" style="color:#000" href="#"></a>
+                        <br>
+                        <h3 id="inspected-status"><small id="inspected-status-small"></small></h3>
+                        <span id="offset_buttons" style="display: none;">
+                            <button id="query_offset_lower" class="glyphicon glyphicon-menu-left"></button>
+                            <button id="query_offset_raise" class="glyphicon glyphicon-menu-right"></button>
+                        </span>
+                        <form id="exportInspectedReads">
+                            {% raw xsrf_form_html() %}
+                            <input type="text" name="taxId" id="exportTaxIdInput" style="display:none;">
+                            <input type="text" name="taxName" id="exportTaxNameInput" style="display:none;">
+                            <button class="btn btn-primary" id="exportInspectedReadsButton">Export</button>
+                            <div class="radio-inline"><label><input type="radio" class="seqOrMapInspect" name="seqOrRead" value='seq' checked>Sequences</label></div>
+                            <div class="radio-inline"><label><input type="radio" class="seqOrMapInspect" name="seqOrRead" value='map'>Mappings</label></div>
+                        </form>
+                        <hr>
+                        <ol id="inpectedReadList">
+                        </ol>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4 col-md-4 col-sm-12 col-xs-12 col-lg-pull-8 col-md-pull-8" >
+            <div class="row">
+                <h4>Taxonomy Report <span class="glyphicon glyphicon-info-sign" data-toggle="popover" data-trigger="hover" data-html='true' data-content="Taxa that reads have been assigned to"><span></h4>
+            </div>
+            <div class="row" id="taxaTableContainer">
+                <div id="taxaTable">
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row" style="display:none">
+        <div class="col-lg-12 col-md-12">
+            {{fileOptions}}
+            <br><br><br>
+        </div>
+    </div>
+
+
+    <div class="modal fade bs-example-modal-lg" tabindex="-1" role="dialog" aria-labelledby="myLargeModalLabel" id="taxonModal">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                    <h4 class="modal-title" id="taxonModalTitle"></h4>
+                </div>
+                <div class="modal-body" id="geneModalBody">
+                    <ul class="nav nav-tabs" role="tablist" id="geneTabs">
+                        <li role="presentation" class="active"><a href="#genesTab" aria-controls="home" role="tab" data-toggle="tab">Genes</a></li>
+                        <li role="presentation" ><a href="#coverageTab" aria-controls="profile" role="tab" data-toggle="tab">Gene Coverage</a></li>
+                    </ul>
+
+                    <div class="tab-content">
+                        <div role="tabpanel" class="tab-pane active" id="genesTab">
+                            <form enctype="multipart/form-data" action="/getCoverage" method="post" id="get_coverage" class="form-manage">
+                            {% raw xsrf_form_html() %}
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th style="width:5%">#</th>
+                                        <th style="width:50%">Gene Name</th>
+                                        <th style="width:5%">Reads</th>
+                                        <th style="width:5%">Mapping</th>
+                                        <th style="width:10%">Coverage</th>
+                                        <th style="width:10%">GeneID</th>
+                                        <th style="width:10%">Present in x Reads</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="geneTableBody">
+                                </tbody>
+                            </table>
+                            </form>
+                            <button type="button" class="btn btn-secondary navigateGenes" id="reverseGenes" value="reverse">-20</button>
+                            <button type="button" class="btn btn-secondary navigateGenes" id="forwardGenes" value="forward">+20</button>
+                        </div>
+                        <div role="tabpanel" class="tab-pane" id="coverageTab">
+                            <h4 id="coverageTitle">No gene selected</h4>
+                            <svg preserveAspectRatio="xMinYMin meet" viewBox="0 0 1000 500" id="coverageSvg" hidden>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% end %}
+
+    {% block data_scripts %}
+        <script src="{{ static_url('js/sunburst_options.js') }}"></script>
+        {% if openFile != None %}
+            <script src="{{ static_url('js/tax_namespace.js') }}"></script>
+            <script src="{{ static_url('js/d3-context-menu.js') }}"></script>
+            <script src="{{ static_url('js/SunburstSVG.js') }}"></script>
+        {% end %}
+    {% end %}

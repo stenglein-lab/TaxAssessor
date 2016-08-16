@@ -1,0 +1,143 @@
+.btn-block-regstr {
+    display: block;
+    width: 100%;
+    margin-top: 10px;
+}
+
+.btn-block-submit {
+    display: block;
+    width: 30%;
+    margin-top: 20px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.label-regstr {
+    margin-top: 7px;
+}
+
+.form-signin input[type="email"] {
+    margin-bottom: 0px;
+    border-bottom-right-radius: 0;
+    border-bottom-left-radius: 0;
+}
+.form-signin input[type="password"] {
+    margin-bottom: 10px;
+    border-top-left-radius: 0;
+    border-top-right-radius: 0;
+}
+
+.form-signin .form-control:focus {
+  z-index: 2;
+}
+
+.modal-header-delete {
+  min-height: 16.42857143px;
+  padding: 15px;
+  border-bottom: 1px solid #e5e5e5;
+  background-color: #d9534f;
+  border-top-right-radius:6px;
+  border-top-left-radius:6px;
+  color:white;
+}
+.modal-header-delete .close {
+  margin-top: -2px;
+}
+
+.modal-header-fileManager {
+  min-height: 16.42857143px;
+  padding: 15px;
+  border-bottom: 1px solid #e5e5e5;
+  background-color: #337ab7;
+  border-top-right-radius:6px;
+  border-top-left-radius:6px;
+  color:white;
+}
+.modal-header-fileManager .close {
+  margin-top: -2px;
+}
+
+.fileTable{  
+    max-height: 500px;
+    overflow: auto;
+}
+
+.btn-file {
+    position: relative;
+    overflow: hidden;
+}
+.btn-file input[type=file] {
+    position: absolute;
+    top: 0;
+    right: 0;
+    min-width: 100%;
+    min-height: 100%;
+    font-size: 100px;
+    text-align: right;
+    filter: alpha(opacity=0);
+    opacity: 0;
+    outline: none;
+    background: white;
+    cursor: inherit;
+    display: block;
+}
+
+input[readonly] {
+  background-color: white !important;
+  cursor: text !important;
+}
+
+@media (min-width: 1200px) {
+    .container{
+        max-width: 1200px;
+    }
+}
+
+.dropdown-options {
+    width: 700px !important;
+    height: 100px !important;
+    background: #F5F5F5;
+}
+
+.right-divider {
+	border-right: #DCDCDC 1px solid;
+}
+
+.left-sidebar {
+    border: #DCDCDC 1px solid;
+    border-radius: 5px;
+    padding: 10px;
+}
+
+.inspect-container {
+    border: #DCDCDC 1px solid;
+    border-radius: 5px;
+    padding: 15px;
+}
+
+.open-file {
+    border: #DCDCDC 1px solid;
+    border-radius: 5px;
+    padding: 10px;
+}
+
+#inspected-taxId, #close-inspect, #inspected-status {
+    display:inline;
+    margin-left: 10px;
+}
+
+@media (min-width: 992px) and (max-width: 1200px) {
+  .btn-responsive {
+    padding: 5px 10px;
+    font-size: 12px;
+    line-height: 1.5;
+    border-radius: 3px;
+  }
+}
+
+.select_all_checkbox_container {
+    text-align: center; /* center checkbox horizontally */
+    vertical-align: middle; /* center checkbox vertically */
+    
+}
+

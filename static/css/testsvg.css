@@ -1,0 +1,80 @@
+.overlay {
+    fill: #F5F5F5;
+    pointer-events: all;
+}
+
+.link {
+    fill: none;
+    stroke: #ccc;
+    stroke-width: 1px;
+}
+
+.node {
+    font: 7px sans-serif;
+}
+
+.node circle {
+    fill: #fff;
+    stroke: steelblue;
+    stroke-width: 1px;
+}
+
+.svg-content-responsive {
+    background: #ddd;
+}
+
+
+.grandparent text {
+    font-weight: bold;
+}
+
+.backButton text {
+    font-weight: bold;
+}
+
+rect {
+    fill: none;
+    stroke: #fff;
+}
+
+rect.parent,
+.backButton rect,
+.grandparent rect {
+    stroke-width: 2px;
+}
+
+.grandparent rect {
+    fill: SlateGray ;
+}
+
+.backButton rect {
+    fill: SlateGray ;
+}
+
+.backButton:hover rect {
+    fill: DarkGray;
+}
+
+.grandparent:hover rect {
+    fill: DarkGray;
+}
+
+.children rect.parent,
+.backButton rect,
+.grandparent rect {
+    cursor: pointer;
+}
+
+.backButton text,
+.grandparent text {
+    cursor: pointer;
+}
+
+.children rect.parent {
+    fill: #bbb;
+    fill-opacity: .5;
+}
+
+.children:hover rect.child {
+    fill: #bbb;
+}

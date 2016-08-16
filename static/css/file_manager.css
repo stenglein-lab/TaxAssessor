@@ -1,0 +1,126 @@
+.table > tbody > tr.active > td {
+    background-color: #85A3C2;
+}
+
+.progress {
+    height: 30px;
+}
+
+.progress-bar {
+    overflow:hidden;
+    white-space:nowrap;
+    line-height:30px;
+}
+
+.progress-bar-success {
+    overflow:hidden;
+    white-space:nowrap;
+    line-height:30px;
+    padding-left: 10px;
+    color: white;
+}
+
+#fileName_search {
+    margin-top: 3px;
+}
+
+.removeList {
+    margin-top: -2px;
+}
+
+.panel-heading a:after {
+    font-family:'Glyphicons Halflings';
+    content:"\e114";
+    float: right;
+    color: grey;
+}
+.panel-heading a.collapsed:after {
+    content:"\e080";
+}
+
+.set-status-text {
+    margin-top: 5px;
+    margin-left: 10px;
+    margin-bottom: 0px;
+}
+
+textarea.form-control {
+    resize: vertical;
+    height: 150px;
+}
+
+.setTable1 {
+    height: 100px;
+}
+
+.btn-compare {
+    margin-top: 3px;
+}
+
+#test_type {
+    padding-top: 10px;
+    padding-right: 15px;
+}
+
+.uploadOptions {
+    border-style:solid;
+    border-color: #C0C0C0;
+    border-width: 1px;
+    border-radius: 5px 5px 5px 5px;
+    padding-bottom: 5px;
+}
+
+.optionSubHeader {
+    border-bottom-style: solid;
+    border-width: 1px;
+    border-bottom-color: #C0C0C0;
+    background-color: #337ab7;
+}
+
+.optionHeader {
+    border-bottom-style: solid;
+    border-width: 1px;
+    border-bottom-color: #C0C0C0;
+    background-color: #337ab7;
+    border-radius: 5px 5px 0px 0px;
+}
+
+.optionHeaderTitle {
+    color: white;
+    padding-bottom: 5px;
+    padding-top: 5px;
+    padding-left: 12px;
+    padding-right: 5px;
+    font-size: 100%;
+}
+
+.optionText {
+    padding-bottom: 5px;
+    padding-top: 8px;
+    padding-left: 12px;
+    padding-right: 12px;  
+    margin-bottom: 5px;  
+    border-style: solid;
+    border-color: #bfbfbf;
+    border-width: 1px;
+    border-radius: 5px 5px 5px 5px;
+}
+
+.uploadOptionsBody {
+    padding-top: 5px;
+    padding-left: 5px;
+    padding-right: 5px;
+}
+
+.delimiter-glyph {
+    color: #337ab7;
+}
+
+.delimiter-glyph:hover {
+    color: black;
+}
+
+.form-control {
+    margin-bottom: 5px;
+}
+

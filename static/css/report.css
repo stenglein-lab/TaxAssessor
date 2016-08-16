@@ -1,0 +1,29 @@
+
+path { 
+    stroke: steelblue;
+    stroke-width: 2;
+    fill: none;
+}
+
+.axis path,
+.axis line {
+    fill: none;
+    stroke: grey;
+    stroke-width: 1;
+    shape-rendering: crispEdges;
+}
+
+.line {
+    stroke: steelblue;
+}
+
+.hiddenRow {
+    padding: 0 !important;
+}
+
+.hiddenTable {
+    padding: 0px;
+    margin: 0px;
+    max-height: 300px;
+    overflow: scroll;
+}

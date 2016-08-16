@@ -1,0 +1,84 @@
+
+.rectHover {
+  fill: #999999;
+
+}
+
+svg {
+  font: 10px sans-serif;
+}
+
+.axis {
+  shape-rendering: crispEdges;
+}
+
+.axis path, .axis line {
+  fill: none;
+  stroke-width: .5px;
+}
+
+path.line {
+  fill: none;
+  stroke: #000;
+  stroke-width: .5px;
+}
+
+.inpect-table {
+    font-size: 80%;
+}
+
+rect.pane {
+  cursor: move;
+  fill: none;
+  pointer-events: all;
+}
+
+rect.read.hidden {
+  fill: none;
+}
+
+.optionsPane {
+    border-style:solid;
+    border-color: #C0C0C0;
+    border-width: 1px;
+    border-radius: 5px 5px 5px 5px;
+    padding-bottom: 5px;}
+
+.optionsSection + .optionsSection {
+    border-top: 1px solid;
+    border-color: #C0C0C0;
+}
+
+.headerRow {
+    color: #FFFFFF;
+    background-color: #337ab7;
+}
+
+.headerRow.firstHeader {
+    border-radius: 5px 5px 0px 0px;
+}
+
+.optionsRow {
+    padding: 5px;
+}
+
+#taxaTable {
+    direction: ltr;
+}
+
+#taxaTableContainer {
+    max-height: 750px;
+    overflow-y: auto;
+    direction: rtl;
+}
+
+.x.axis text {
+  font: 10px sans-serif;
+}
+
+.x.axis.taxaTable path,
+.x.axis.taxaTable line {
+  fill: none;
+  stroke: #000;
+  stroke-width: 3px;
+}
