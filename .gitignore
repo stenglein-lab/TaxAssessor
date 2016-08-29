@@ -1,6 +1,7 @@
 uploads/*
 setup/*.accession2taxid
 setup/*.dmp
+setup/database_import/*
 setup/readme.txt
 setup/gc.prt
 *.pyc

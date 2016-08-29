@@ -54,7 +54,7 @@ CREATE TABLE fileSets   (username VARCHAR(50) NOT NULL,
  CREATE TABLE sharing (fileId INT(20) NOT NULL REFERENCES files(uniqueId),
                        ownerId INT(20) NOT NULL REFERENCES users(uniqueId),
                        shareeId INT(20) NOT NULL REFERENCES users(uniqueId),
-                       projectName VARCHAR(255) NOT NULL DEFAULT NONE,
+                       projectName VARCHAR(255) NOT NULL DEFAULT "None",
                        INDEX (ownerId),
                        INDEX (shareeId));
 
