@@ -1,3 +1,7 @@
 uploads/*
+setup/*.accession2taxid
+setup/*.dmp
+setup/readme.txt
+setup/gc.prt
 *.pyc
 *.swp

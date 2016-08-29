@@ -91,26 +91,42 @@ class BaseHandler(tornado.web.RequestHandler):
         return None.
         """
         with TaxDb.openDb("TaxAssessor_Users") as db, TaxDb.cursor(db) as cur:
-            cmd = ("SELECT filename,dateModified,status,readFile "
+            cmd = ("SELECT filename,dateModified,status,readFile,project "
                    "FROM files WHERE username=%s;")
             cur.execute(cmd,userName)
             fileInfo = []
             dates = []
             statuses = []
             readFiles = []
+            projects = []
             f = '%Y-%m-%d %H:%M:%S'
             for item in cur.fetchall():
                 fileInfo.append(item[0])
                 dates.append(item[1].strftime(f))
                 statuses.append(item[2])
                 readFiles.append(item[3])
-            return fileInfo,dates,statuses,readFiles
+                projects.append(item[4])
+            return fileInfo,dates,statuses,readFiles,projects
 
     @tornado.web.authenticated
     def get_current_fileName(self):
         fileName = self.get_secure_cookie("TaxOpenFiles")
         return fileName
+    
+    @tornado.web.authenticated    
+    def get_current_sharedUserName(self):
+        sharedUserName = self.get_secure_cookie("TaxSharedUserName")
+        return sharedUserName
 
+    @tornado.web.authenticated 
+    def get_current_userName_file_open(self):
+        sharedUserName = self.get_current_sharedUserName()
+        if sharedUserName != None:
+            return sharedUserName
+        else:
+            userName = self.get_current_username()
+            return userName
+        
     @tornado.web.authenticated
     def get_current_fileName_tableName(self,userName,fileName):
         with TaxDb.openDb("TaxAssessor_Users") as db, TaxDb.cursor(db) as cur:
@@ -142,28 +158,64 @@ class BaseHandler(tornado.web.RequestHandler):
             fileOptions = cur.fetchone()
             return fileOptions
 
+    def get_shared_files(self,userName):
+        with TaxDb.openDb("TaxAssessor_Users") as db, TaxDb.cursor(db) as cur:
+            cmd = "SELECT uniqueId FROM users WHERE username=%s;"
+            cur.execute(cmd,userName)
+            userId = int(cur.fetchone()[0])  
+            
+            cmd = "SELECT fileId,projectName FROM sharing WHERE shareeId=%s"
+            cur.execute(cmd,userId)
+            sharedFiles = []
+            fileProjects = {}
+            for sharedFileId in cur.fetchall():
+                sharedFiles.append(int(sharedFileId[0]))
+                fileProjects[int(sharedFileId[0])] = str(sharedFileId[1])
+            
+            print fileProjects
+            
+            if len(sharedFiles) == 0:
+                return ""
+            
+            sharedFiles = str(sharedFiles).lstrip("[").rstrip("]")
+            cmd = ("SELECT username,filename,uniqueId FROM files WHERE "
+                   "uniqueId in (" + sharedFiles + ");")
+            cur.execute(cmd)
+            
+            fileData = {}
+            for fileDatum in cur.fetchall():
+                fileData[fileDatum[1]] = [fileDatum[0],
+                                          fileProjects[int(fileDatum[2])]]
+                
+            return fileData
+            
 class Index(BaseHandler):
     """
     Handler to render the home page of TaxAssessor.
     """
     def get(self):
+        self.clear_cookie("TaxSharedUserName")
         firstName = self.get_current_firstName()
         if firstName is not None:
             userName = self.get_current_username()
-            fileListing,dates,statuses,readFiles = self.get_current_fileListing(userName)
+            fileListing,dates,statuses,readFiles,projects = self.get_current_fileListing(userName)
             openFile = self.get_current_fileName()
             setNames = self.get_current_set_list(userName)
+            sharedFiles = self.get_shared_files(userName)
         else:
             fileListing = []
-            openFile  = None
-            userName  = None
-            setNames  = None
-            dates     = None
-            statuses  = None
-            readFiles = None
+            openFile    = None
+            userName    = None
+            setNames    = None
+            dates       = None
+            statuses    = None
+            readFiles   = None
+            projects    = None
+            sharedFiles = None
         self.render("index.html",user=firstName,fileListing=fileListing,
                     openFile=openFile,userName=userName,setNames=setNames,
-                    dateModified=dates,statuses=statuses,readFiles=readFiles)
+                    dateModified=dates,statuses=statuses,readFiles=readFiles,
+                    projects=projects,sharedFiles=sharedFiles)
 
 class Login(BaseHandler):
     """
@@ -294,6 +346,7 @@ class Logout(BaseHandler):
         self.clear_cookie("TaxUser")
         self.clear_cookie("TaxFiles")
         self.clear_cookie("TaxOpenFiles")
+        self.clear_cookie("TaxSharedUserName")
         self.redirect("/")
 
 class Upload(BaseHandler):
@@ -331,6 +384,11 @@ class Upload(BaseHandler):
         options = {}
         options["useLca"] = ("True" == self.get_argument('useLca'))
         fileFormat = self.get_argument('fileFormat')
+        try:
+            options["projectName"] = self.get_argument('projectInput')
+        except Exception:
+            options["projectName"] = "None"
+
         if fileFormat[0:5] == "Blast":
             options["readNameIndex"] = 0
             options["fileFormat"] = "blast"
@@ -338,8 +396,8 @@ class Upload(BaseHandler):
             options["seqIdIndex"] = 1
             options["seqIdDelimiter"] = "|"
             options["seqIdSubIndex"] = 1
-            options["scoreIndex"] = 10
-            options["scorePreference"] = "lower"
+            options["scoreIndex"] = 11
+            options["scorePreference"] = "higher"
             options["header"] = ("QueryID\tSubjectID\t%Ident\tAlignLen\t"
                     "nMisMatch\tnGapOpen\tqStart\tqEnd\tsubStart\tsubEnd\teVal"
                     "\tbitScore")
@@ -427,13 +485,14 @@ class Open(BaseHandler):
     def post(self):
         fileName = self.get_argument("fileName")
         self.set_secure_cookie("TaxOpenFiles",fileName,expires_days=1)
-        #self.redirect("/file_report")
+        self.clear_cookie("TaxSharedUserName")
         self.redirect("/sunburst")
 
 class Close(BaseHandler):
     @tornado.web.authenticated
     def get(self):
         self.clear_cookie("TaxOpenFiles")
+        self.clear_cookie("TaxSharedUserName")
         self.redirect("/")
 
 class Delete(BaseHandler):
@@ -492,7 +551,7 @@ class InspectReads(BaseHandler):
         taxName = self.get_argument("taxName")
         offset = self.get_argument("offset")
 
-        userName = self.get_current_username()
+        userName = self.get_current_userName_file_open()
         fileName = self.get_current_fileName()
         fileOptions = self.get_file_options(userName,fileName)
         fileId   = self.get_current_fileName_tableName(userName,fileName)
@@ -550,8 +609,9 @@ class ServeReports(BaseHandler):
     @tornado.web.authenticated
     def get(self,path):
         try:
-            userName = self.get_current_username()
+            userName = self.get_current_userName_file_open()
             currentFile = self.get_current_fileName()
+            sharedUserName = self.get_current_sharedUserName()
             fileOptions = self.get_file_options(userName,currentFile)
             print currentFile
             print path
@@ -600,9 +660,9 @@ class GetCoverage(BaseHandler):
     def post(self):
         seqId = self.get_argument("seqId")
         taxId = self.get_argument("taxId")
-        userName = self.get_current_username()
+        userName = self.get_current_userName_file_open()
         fileName = self.get_current_fileName()
-        fileId   = self.get_current_fileName_tableName(userName,fileName)
+        fileId = self.get_current_fileName_tableName(userName,fileName)
         fileId   = "t"+str(fileId)
         data = TaxReads.retrieveGiAssociatedReads(userName,fileName,
                                                   fileId,seqId,taxId)
@@ -615,7 +675,7 @@ class FilterGene(BaseHandler):
     @tornado.web.authenticated
     def post(self):
         seqId = self.get_argument("seqId")
-        userName = self.get_current_username()
+        userName = self.get_current_userName_file_open()
         fileName = self.get_current_fileName()
         fileId   = self.get_current_fileName_tableName(userName,fileName)
         fileId   = "t"+str(fileId)
@@ -625,7 +685,7 @@ class FilterGene(BaseHandler):
 class ExportSeqData(BaseHandler):
     @tornado.web.authenticated
     def post(self):
-        userName    = self.get_current_username()
+        userName    = self.get_current_userName_file_open()
         fileName    = self.get_current_fileName()
         fileOptions = self.get_file_options(userName,fileName)
         fileId      = self.get_current_fileName_tableName(userName,fileName)
@@ -752,3 +812,178 @@ class DeleteReadFile(BaseHandler):
             cmd = "UPDATE files SET readFile='0' WHERE uniqueId=%s;"
             cur.execute(cmd,uniqueId)
             db.commit()
+
+class UpdateProjectName(BaseHandler):
+    @tornado.web.authenticated
+    def post(self):
+        projectName = self.get_argument("changeProjectName")
+        fileName = self.get_argument("fileName")
+        userName = self.get_current_username()
+        uniqueId = self.get_current_fileName_tableName(userName,fileName)
+
+        if projectName == "":
+            projectName = "None"
+
+        with TaxDb.openDb("TaxAssessor_Users") as db, TaxDb.cursor(db) as cur:
+            cmd = "UPDATE files SET project=%s WHERE uniqueId=%s;"
+            params = (projectName,uniqueId)
+            cur.execute(cmd,params)
+            db.commit()
+            cmd = "UPDATE sharing SET projectName=%s WHERE fileId=%s"
+            cur.execute(cmd,params)
+            db.commit()
+            
+class GetSharingData(BaseHandler):
+    @tornado.web.authenticated
+    def post(self):
+        fileName = self.get_argument("fileName")
+        userName = self.get_current_username()
+        fileId = self.get_current_fileName_tableName(userName,fileName)
+
+        with TaxDb.openDb("TaxAssessor_Users") as db, TaxDb.cursor(db) as cur:
+            cmd = "SELECT uniqueId FROM users WHERE username=%s;"
+            cur.execute(cmd,userName)
+            userId = int(cur.fetchone()[0])
+
+            cmd = "SELECT shareeId FROM sharing WHERE ownerId=%s and fileId=%s;"
+            cur.execute(cmd,(userId,fileId))
+            shareeIds = []
+            for shareeId in cur.fetchall():
+                shareeIds.append(int(shareeId[0]))
+
+            shareeIds = str(shareeIds).lstrip("[").rstrip("]")
+            if len(shareeIds)==0:
+                return
+            cmd = ("SELECT username,uniqueId FROM users WHERE uniqueId in ("+
+                   shareeIds+");")
+            cur.execute(cmd)
+            html = ""
+            for shareeName in cur.fetchall():
+                html += ("<tr class='sharedWithRow'>"
+                         "<td>"+shareeName[0]+"</td>"
+                         "<td><a type='button' class='glyphicon glyphicon-remove deleteSharedUserButton' style='color:#000' value="+str(int(shareeName[1]))+"></a></td>"
+                         "</tr>")
+            self.write(html)
+
+class AddSharedUser(BaseHandler):
+    @tornado.web.authenticated
+    def post(self):   
+        fileName = self.get_argument("fileName")
+        userName = self.get_current_username()
+        sharee = self.get_argument("userName")
+        fileId = self.get_current_fileName_tableName(userName,fileName)
+        
+        with TaxDb.openDb("TaxAssessor_Users") as db, TaxDb.cursor(db) as cur:
+            cmd = "SELECT uniqueId FROM users WHERE username=%s;"
+            cur.execute(cmd,userName)
+            userId = int(cur.fetchone()[0])
+            
+            cmd = "SELECT uniqueId FROM users WHERE username=%s;"
+            try:
+                cur.execute(cmd,sharee)
+                shareeId = int(cur.fetchone()[0])
+            except Exception:
+                raise StopIteration
+            if userId == shareeId:
+                raise StopIteration("hi")
+            
+            cmd = ("SELECT COUNT(*) FROM sharing where fileId=%s and "
+                   "ownerId=%s and shareeId=%s")
+            cur.execute(cmd,(fileId, userId, shareeId))
+            count = int(cur.fetchone()[0])
+            if count > 0:
+                raise StopIteration
+            
+            cmd = "SELECT Project FROM files WHERE uniqueId=%s"
+            cur.execute(cmd,(fileId))
+            projectName = str(cur.fetchone()[0])
+            
+            
+            cmd = ("INSERT INTO sharing (fileId,ownerId,shareeId,projectName) "
+                   "VALUES (%s,%s,%s,%s);")
+            cur.execute(cmd,(fileId, userId, shareeId, projectName))
+            db.commit()
+        print shareeId
+        self.write(str(shareeId))
+        
+class DeleteSharedUser(BaseHandler):
+    @tornado.web.authenticated
+    def post(self):
+        fileName = self.get_argument("fileName")
+        userName = self.get_current_username()
+        shareeId = self.get_argument("shareeId")  
+        fileId = self.get_current_fileName_tableName(userName,fileName)        
+        
+        with TaxDb.openDb("TaxAssessor_Users") as db, TaxDb.cursor(db) as cur:
+            cmd = "SELECT uniqueId FROM users WHERE username=%s;"
+            cur.execute(cmd,userName)
+            userId = int(cur.fetchone()[0])    
+
+            cmd = ("DELETE FROM sharing WHERE ownerId=%s and shareeId=%s and "
+                   "fileId=%s;")
+            cur.execute(cmd,(userId,shareeId,fileId))
+            db.commit()
+
+class RemoveFileFromSharing(BaseHandler):
+    @tornado.web.authenticated
+    def post(self):
+        fileName = self.get_argument("fileName")
+        userName = self.get_current_username()
+        owner = self.get_argument("userName") 
+        fileId = self.get_current_fileName_tableName(owner,fileName) 
+
+        with TaxDb.openDb("TaxAssessor_Users") as db, TaxDb.cursor(db) as cur:
+            cmd = "SELECT uniqueId FROM users WHERE username=%s;"
+            cur.execute(cmd,userName)
+            userId = int(cur.fetchone()[0])
+            
+            cmd = "SELECT uniqueId FROM users WHERE username=%s;"
+            cur.execute(cmd,owner)
+            ownerId = int(cur.fetchone()[0])
+
+            cmd = ("DELETE FROM sharing WHERE ownerId=%s and shareeId=%s and "
+                   "fileId=%s;")
+            cur.execute(cmd,(ownerId,userId,fileId))
+            db.commit()
+
+class OpenSharedFile(BaseHandler):
+    @tornado.web.authenticated
+    def post(self):        
+        fileName = self.get_argument("sharedFileName")
+        fileOwner = self.get_argument("sharedFileOwner")
+        userName = self.get_current_username()
+        fileId = self.get_current_fileName_tableName(fileOwner,fileName)
+        
+        with TaxDb.openDb("TaxAssessor_Users") as db, TaxDb.cursor(db) as cur:
+            cmd = "SELECT uniqueId FROM users WHERE username=%s;"
+            cur.execute(cmd,userName)
+            userId = int(cur.fetchone()[0])  
+
+            cmd = "SELECT uniqueId FROM users WHERE username=%s;"
+            cur.execute(cmd,fileOwner)
+            ownerId = int(cur.fetchone()[0])            
+        
+            print userId,ownerId,fileId
+            
+            cmd = ("SELECT COUNT(*) FROM sharing WHERE fileId=%s and "
+                   "ownerId=%s and shareeId=%s")
+            cur.execute(cmd,(fileId,ownerId,userId))
+            count = int(cur.fetchone()[0])
+            
+        if count > 0:
+            self.set_secure_cookie("TaxSharedUserName",fileOwner,expires_days=1)
+            self.set_secure_cookie("TaxOpenFiles",fileName,expires_days=1)
+            self.redirect("/sunburst")
+            
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        

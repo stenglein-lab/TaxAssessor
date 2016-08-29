@@ -4,12 +4,13 @@ CREATE DATABASE TaxAssessor_Users;
 
 USE TaxAssessor_Users;
 
-CREATE TABLE users  (username VARCHAR(50) NOT NULL PRIMARY KEY,
+CREATE TABLE users  (username VARCHAR(50) NOT NULL,
                      password VARCHAR(128) NOT NULL,
                      firstName VARCHAR(50) NOT NULL,
                      lastName VARCHAR(50) NOT NULL,
                      salt VARCHAR(32) NOT NULL,
                      currentFile VARCHAR(128),
+                     uniqueId INT(20) NOT NULL AUTO_INCREMENT PRIMARY KEY,
                      INDEX (username));
 
 
@@ -18,6 +19,8 @@ CREATE TABLE files  (username VARCHAR(50) NOT NULL,
                      dateModified TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
                      status VARCHAR(50) NOT NULL DEFAULT "None",
                      uniqueId INT(20) NOT NULL AUTO_INCREMENT,
+                     readFile TINYINT(1) NOT NULL DEFAULT "0",
+                     Project VARCHAR(255) NOT NULL DEFAULT "None",
                      FOREIGN KEY (username) REFERENCES users(username),
                      PRIMARY KEY (uniqueId),
                      INDEX (username,filename));
@@ -48,7 +51,14 @@ CREATE TABLE fileSets   (username VARCHAR(50) NOT NULL,
                          PRIMARY KEY (uniqueId),
                          INDEX (username,setname));
 
-Use TaxAssessor_Refs;
+ CREATE TABLE sharing (fileId INT(20) NOT NULL REFERENCES files(uniqueId),
+                       ownerId INT(20) NOT NULL REFERENCES users(uniqueId),
+                       shareeId INT(20) NOT NULL REFERENCES users(uniqueId),
+                       projectName VARCHAR(255) NOT NULL DEFAULT NONE,
+                       INDEX (ownerId),
+                       INDEX (shareeId));
+
+USE TaxAssessor_Refs;
 
 CREATE TABLE seqIdToTaxId_NCBI   (accession VARCHAR(30) NOT NULL,
                                   accessionVersion VARCHAR(32) NOT NULL,

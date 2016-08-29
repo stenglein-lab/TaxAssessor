@@ -1,7 +1,7 @@
-var taxTreeJson = "../../docs/"+$('#username').attr("value")+"/"+
-  $('#open-file').attr("value")+"_tree.json";
+userName = $('#username').attr("value");
 
-console.log(taxTreeJson);
+var taxTreeJson = "../../docs/"+userName+"/"+
+  $('#open-file').attr("value")+"_tree.json";
 
 $(function () {
   $('[data-toggle="popover"]').popover()
@@ -858,11 +858,23 @@ function startColors(d) {
     for (var i=0; i < d.children.length; i++) {
         var child = d.children[i];
         if (child.name == "cellular organisms") {
-            child.color = "rgb("+colors[0]+")";
+            child.color = "rgb(51,204,51)";
+            if (child.children) {
+                for (var j=0; j<child.children.length; j++) {
+                    var grandChild = child.children[j];
+                    if (grandChild == null) {
+
+                    } else if (grandChild.name == "Archaea") {
+                        grandChild.color = "rgb(102, 153, 153)";
+                    } else if (grandChild.name == "Eukaryota") {
+                        grandChild.color = "rgb(153, 204, 0)";
+                    }
+                }
+            }
         } else if (child.name == 'Viruses') {
-            child.color = "rgb("+colors[1]+")";
+            child.color = "rgb(0,102,255)";
         } else if (child.name == 'Unknown') {
-            child.color = "rgb("+colors[2]+")"
+            child.color = "rgb(255,80,80)"
         } else {
             child.color = "rgb("+colors[i]+")";
         }
@@ -968,17 +980,23 @@ var tableSvg = d3.select("#taxaTable").append("div")
     .attr("viewBox","0 0 "+tableWidth+" "+tableHeight)
 
 var tableCanvas = tableSvg.append("g")
-    .attr("transform", "translate(5,10)");
+    .attr("transform", "translate(0,0)");
 
 var gAxis = tableCanvas.append("g")
     .attr("class","x axis taxaTable")
 
+gAxis.append("text")
+    .attr("class", "x label")
+    .attr("text-anchor", "end")
+    .attr("x", tableWidth-5)
+    .attr("y", 27)
+    .text("# aligning reads");
 /*tableSvg.append("rect")
     .attr("width", "100%")
     .attr("height", "100%")
     .attr("fill", "gray")*/
 
-var taxaReport = '../../docs/'+$('#username').attr('value')+'/'+
+var taxaReport = '../../docs/'+userName+'/'+
                 $('#open-file').attr('value')+'_taxonomyReport.json';
 
 var tableDuration = 1000;
@@ -1013,6 +1031,82 @@ function lightenRGBColor(color) {
 }
 
 function updateTable(source,taxaList) {
+
+    var rightClickMenu = [
+      {
+        title: 'Inspect Alignments',
+        action: function(elm, d, i) {
+            console.log(d);
+          $('#inspectTaxIdInput').val(d.taxId);
+          $('#inspectTaxNameInput').val(d.name);
+          $('#exportTaxIdInput').val(d.taxId);
+          $('#exportInspectedReadsButton').val(d.taxId);
+          $('#exportTaxNameInput').val(d.name);
+          $('#inspectForm').submit();
+        }
+    }/*,{
+        title: 'Filter From View',
+        action: function(elm,d,i) {
+            function addFilterTag(d) {
+                d.handFiltered = true;
+                if (d.children) {
+                    d.children.forEach(addFilterTag)
+                }
+            }
+            addFilterButton('Name',d.name,'Exclude');
+            addFilterTag(d);
+            updateFilter(root);
+            filterTransition();
+        }
+    }*/,{
+        title: 'Google Taxon',
+        action: function(elm, d, i) {
+          var taxonSearch = d.name.split(" ");
+            taxonSearchUrl = "http://www.google.com/search?q="
+          for(var i =0; i < taxonSearch.length; i++){
+            taxonSearchUrl += taxonSearch[i] + "+";
+          }
+          taxonSearchUrl = taxonSearchUrl.substring(0, taxonSearchUrl.length - 1);
+          var win = window.open(taxonSearchUrl, '_blank');
+          if(win){
+            //Browser has allowed it to be opened
+            win.focus();
+          }else{
+            //Browser has blocked it
+            alert('Please allow popups for this site');
+          }
+        }
+      },{
+        title: 'Lookup Taxon on NCBI',
+        action: function(elm, d, i) {
+          var taxonSearch = d.name.split(" ");
+            taxonSearchUrl = "http://www.ncbi.nlm.nih.gov/gquery/?term="
+          for(var i =0; i < taxonSearch.length; i++){
+            taxonSearchUrl += taxonSearch[i] + "+";
+          }
+          taxonSearchUrl = taxonSearchUrl.substring(0, taxonSearchUrl.length - 1);
+          var win = window.open(taxonSearchUrl, '_blank');
+          if(win){
+            //Browser has allowed it to be opened
+            win.focus();
+          }else{
+            //Broswer has blocked it
+            alert('Please allow popups for this site');
+          }
+        }
+      },{
+        title: 'Copy Name',
+        action: function(elm, d, i) {
+          window.prompt("Copy to clipboard: Ctrl+C, Enter", d.name);
+        }
+      },{
+        title: 'Copy TaxID',
+        action: function(elm, d, i) {
+          window.prompt("Copy to clipboard: Ctrl+C, Enter", d.taxId);
+        }
+      },
+    ];
+
     var n = source.length;
     if (typeof(taxaList)==='undefined') taxaList = [];
     function color(d) {
@@ -1092,6 +1186,7 @@ function updateTable(source,taxaList) {
         .attr("transform",function(d) {return "translate(" + d.x + "," + d.y + ")"})
         .style("opacity",1)
         .on("click", function(d) {clickTable(d);})
+        .on('contextmenu', d3.contextMenu(rightClickMenu))
         .on("mouseover", function(d) {
             d3.select(this).select("rect").style("fill","#999999");
             var arcColor = document.getElementById(d.taxId+'_arc').style.fill;
@@ -1129,18 +1224,23 @@ function updateTable(source,taxaList) {
     var newDomain = [0,maxCount];
     var x = d3.scale.linear()
         .domain(newDomain)
-        .range([0,width]);
+        .range([0,tableWidth]);
 
     var xAxis = d3.svg.axis()
-        .scale(x)
+        .scale(x);
 
+    function adjustTextLabels(d) {
+        d.selectAll('text')
+            .attr('transform','translate(5,0)');
+    }
 
     if (oldDomain != newDomain) {
         gAxis.transition().duration(200).tween("axis", function(d,i) {
             var i = d3.interpolate(oldDomain, newDomain);
             return function(t) {
               x.domain(i(t));
-              gAxis.call(xAxis);
+              gAxis.call(xAxis)
+                   .call(adjustTextLabels);
             }
             oldDomain = newDomain;
         })
@@ -1597,11 +1697,14 @@ $('#sunburst_options').click(function(e) {
     e.preventDefault();
     var link = $("#sunburst_options").parent(),
         sidebar = $(".optionsPane");
+        bigDropDown = $(".navbar-bigDropDown")
     if (link.hasClass("active")) {
         link.removeClass("active");
         sidebar.fadeOut();
+        bigDropDown.fadeOut();
     } else {
         link.addClass("active");
         sidebar.fadeIn();
+        bigDropDown.fadeIn();
     };
 });

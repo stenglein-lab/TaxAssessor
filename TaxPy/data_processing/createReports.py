@@ -7,19 +7,19 @@ def assessTaxIds(taxa,reads,fileName,userName):
     print len(reads),len(taxa)
     report = {}
     for readName in reads:
-        taxId = reads[readName].assignedTaxIds[0]
-        if taxId in report:
-            report[taxId]["count"] += 1
-        else:
-            report[taxId] = {"name":taxa[taxId].name,
-                             "count":1,
-                             "taxId":taxId,
-                             "genes":{}}
-        for seqId in reads[readName].seqIds:
-            if seqId in report[taxId]["genes"]:
-                report[taxId]["genes"][seqId] += 1
+        for taxId in reads[readName].assignedTaxIds:
+            if taxId in report:
+                report[taxId]["count"] += reads[readName].contribution
             else:
-                report[taxId]["genes"][seqId] = 1
+                report[taxId] = {"name":taxa[taxId].name,
+                                 "count":1,
+                                 "taxId":taxId,
+                                 "genes":{}}
+            for seqId in reads[readName].seqIds:
+                if seqId in report[taxId]["genes"]:
+                    report[taxId]["genes"][seqId] += 1
+                else:
+                    report[taxId]["genes"][seqId] = 1
 
     for taxId in report:
         seqIds = []

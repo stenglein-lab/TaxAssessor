@@ -39,7 +39,7 @@ class ImportManager():
         the username.  If the file already exists, touch the row in the database
         to update the timestamp.
         """
-        def createDbEntry(self):
+        def createDbEntry(self,loadOptions):
             with TaxDb.openDb("TaxAssessor_Users") as db, TaxDb.cursor(db) as cur:
                 cmd = "SELECT * FROM files WHERE username=%s AND filename=%s"
                 cur.execute(cmd,(self.userName,self.fileName))
@@ -48,9 +48,11 @@ class ImportManager():
                     raise Exception
                     return
                 else:
-                    cmd = "INSERT INTO files (username,filename) VALUES (%s,%s);"
-                    params = (self.userName.encode("ascii"),self.
-                              fileName.encode("ascii"))
+                    cmd = ("INSERT INTO files (username,filename,project) " 
+                           "VALUES (%s,%s,%s);")
+                    params = (self.userName.encode("ascii"),
+                              self.fileName.encode("ascii"),
+                              loadOptions["projectName"].encode("ascii"))
                     cur.execute(cmd,params)
                     db.commit()
                     return
@@ -126,7 +128,7 @@ class ImportManager():
         print str(time3-time2)+" seconds creating dir"
 
         try:
-            createDbEntry(self)
+            createDbEntry(self,loadOptions)
         except Exception as e:
             status = "File already exists, please delete first!"
             print e

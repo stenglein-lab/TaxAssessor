@@ -57,7 +57,7 @@
   margin-top: -2px;
 }
 
-.fileTable{  
+.fileTable{
     max-height: 500px;
     overflow: auto;
 }
@@ -116,9 +116,9 @@ input[readonly] {
 }
 
 .open-file {
-    border: #DCDCDC 1px solid;
-    border-radius: 5px;
-    padding: 10px;
+    /*border: #DCDCDC 1px solid;
+    border-radius: 5px;*/
+    padding: 3px;
 }
 
 #inspected-taxId, #close-inspect, #inspected-status {
@@ -138,6 +138,41 @@ input[readonly] {
 .select_all_checkbox_container {
     text-align: center; /* center checkbox horizontally */
     vertical-align: middle; /* center checkbox vertically */
-    
+
+}
+
+.navbar-bigDropDown {
+    border-top: #777 1px solid;
+    margin: 0px;
+    padding-top: 10px;
+}
+
+.closeFile {
+  font-size: 21px;
+  font-weight: bold;
+  line-height: 1;
+  color: #000;
+  text-shadow: 0 1px 0 #fff;
+  filter: alpha(opacity=20);
+  opacity: .2;
+}
+.closeFile:hover,
+.closeFile:focus {
+  color: #000;
+  text-decoration: none;
+  cursor: pointer;
+  filter: alpha(opacity=50);
+  opacity: .5;
+}
+
+.projectNameField {
+  color: #000;
+  cursor: pointer;
+}
+
+.projectNameField:hover {
+  background-color: #AAA;
+  border: #333 2px solid
+  
 }
 

@@ -21,11 +21,13 @@
     <header class="row">
         <div class="col-lg-6 col-sm-6">
             <h1>TaxAssessor</h1>
+            {% block fileName %}
+            {% end %}
         </div>
         <div class="col-lg-6 col-sm-6 bottom-right-align-text">
             <p>
             {% if user == None %}
-                Login for access - 
+                Login for access -
                 <a href="#loginModal" data-toggle="modal">
                     Login
                 </a>
@@ -58,6 +60,10 @@
                     <li><a href="/#about">About</a></li>
                     <li><a href="/#contact">Contact</a></li>
                 </ul>
+            </div>
+            <div class="navbar-bigDropDown" style="display:none;">
+                {% block navbar-bigDropDown %}
+                {% end %}
             </div>
         </div>
     </nav>

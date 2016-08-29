@@ -8,8 +8,3 @@ wget ftp://ftp.ncbi.nlm.nih.gov/pub/taxonomy/accession2taxid/prot.accession2taxi
 wget ftp://ftp.ncbi.nlm.nih.gov/pub/taxonomy/taxdump.tar.gz
 gunzip *.gz
 tar -xvf taxdump.tar
-
-
-
-
-

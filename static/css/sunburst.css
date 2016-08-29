@@ -73,12 +73,12 @@ rect.read.hidden {
 }
 
 .x.axis text {
-  font: 10px sans-serif;
+  font: 12px sans-serif;
 }
 
 .x.axis.taxaTable path,
 .x.axis.taxaTable line {
   fill: none;
   stroke: #000;
-  stroke-width: 3px;
+  stroke-width: 4px;
 }

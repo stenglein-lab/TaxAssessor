@@ -34,12 +34,18 @@ def main():
             (r'/saveSet',   handlers.SaveSet),
             (r'/getSet',    handlers.GetSetList),
             (r'/compare',   handlers.CompareSets),
-            (r'/getCoverage',   handlers.GetCoverage),
-            (r'/filterGene',   handlers.FilterGene),
-            (r'/exportSeqData',   handlers.ExportSeqData),
+            (r'/getCoverage',    handlers.GetCoverage),
+            (r'/filterGene',     handlers.FilterGene),
+            (r'/exportSeqData',  handlers.ExportSeqData),
             (r'/uploadReadFile', handlers.UploadReadFile),
             (r'/deleteReadFile', handlers.DeleteReadFile),
-            (r'/(favicon.ico)', tornado.web.StaticFileHandler, {"path": ""}),
+            (r'/updateProjectName', handlers.UpdateProjectName),
+            (r'/getSharingData', handlers.GetSharingData),
+            (r'/addSharedUser', handlers.AddSharedUser),
+            (r'/deleteSharedUser', handlers.DeleteSharedUser),
+            (r'/removeFileFromSharing', handlers.RemoveFileFromSharing),
+            (r'/openSharedFile', handlers.OpenSharedFile),
+            (r'/(favicon.ico)',  tornado.web.StaticFileHandler, {"path": ""}),
             (r'/(.+)',      handlers.ServeReports)
     ]
 

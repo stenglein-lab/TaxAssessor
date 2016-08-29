@@ -1,3 +1,8 @@
+$(function () {
+  $('[data-toggle="popover"]').popover()
+})
+
+
 //
 // TAB SWITCHING
 //
@@ -481,6 +486,7 @@ $('#manageTabs a[href="#AlignUpload"]').click(function (e) {
         }
         var formData = new FormData($('#upload_form')[0]),
             fileName = $('#upload_name').val(),
+            projectName = $('#projectInput').val(),
             currentBarContainer = $("<div class='progress'></div>"),
             bar = $("<div class='progress-bar' role='progressbar' aria-valuenow='0' aria-valuemin='0' aria-valuemax='100' style='width: 0%;'>0%</div>");
         $.ajax({
@@ -496,7 +502,7 @@ $('#manageTabs a[href="#AlignUpload"]').click(function (e) {
                 for (var fileName in resp) {
                     var status = resp[fileName];
                     if (status.indexOf("SUCCESS") > -1) {
-                        addTableRow(fileName)
+                        addTableRow(fileName,projectName)
                     } else {
                         uploadError(fileName,status);
                     }
@@ -634,6 +640,7 @@ $('#manageTabs a[href!="#Delete"]').click(function (e) {
 function changeFileButtons(buttonHtml) {
     var rows = $('.selectableFiles');
     for (var i=0;i<rows.length;i++) {
+        console.log(rows[i])
         rows[i].cells[0].innerHTML = buttonHtml;
     }
 }
@@ -669,9 +676,11 @@ $(".openFileButton").click( function(e) {
 //
 //  FILE LISTING & SELECTION FUNCTIONS
 //
-function addTableRow(fileName) {
-    var newRow = "<tr name='"+fileName+"' class='selectableFiles' id='"+fileName+"'><td></td><td>"+fileName+"</td><td>None</td><td id=''>None</td></tr>";
+function addTableRow(fileName,projectName) {
+    var newRow = "<tr name='"+fileName+"' class='selectableFiles' id='"+fileName+"'><td></td><td>"+fileName+"</td><td>"+projectName+"<td>None</td><td id=''>None</td><td><button type='button' class='btn btn-secondary btn-xs addReadFileButton'>Add</button></td></tr>";
     $('#tableBody').append(newRow);
+    $('.addReadFileButton').unbind('click');
+    $('.addReadFileButton').click( uploadReadFile );
 }
 
 var file_selected = false;
@@ -719,7 +728,8 @@ function doneTyping () {
     var searchName = $('#fileName_search').val().toLowerCase();
     $('#tableBody').children().each( function () {
         var fileName = $(this).attr("name").toLowerCase();
-        if (fileName.indexOf(searchName) >= 0) {
+        var projectName = $(this).attr("projectname").toLowerCase();
+        if ((fileName.indexOf(searchName) >= 0) || (projectName.indexOf(searchName) >= 0)) {
             $(this).show();
         } else {
             $(this).hide();
@@ -798,3 +808,239 @@ function deleteReadFile(e) {
         }
     });
 }
+
+var oldHTML
+var nameContainer
+$('.projectNameField').click( function(e) {
+    console.log(oldHTML);
+    if (oldHTML != undefined) {
+        nameContainer.innerHTML = oldHTML;
+    };
+    nameContainer = $(this)[0];
+    oldHTML = nameContainer.innerHTML;
+    nameContainer.innerHTML = '<input type="text" class="projectNameChangeTableField" placeholder="'+oldHTML+'"></input>'
+    $('.projectNameChangeTableField').focus();
+    $('.projectNameChangeTableField').focusout( function(e) {
+        nameContainer.innerHTML = oldHTML;
+    });
+    $('.projectNameChangeTableField').keyup(function(e)  {
+        if (e.keyCode==27) {
+            $('.projectNameChangeTableField').unbind('focusout');
+            nameContainer.innerHTML = oldHTML;
+        } else if (e.keyCode==13) {
+            var newName = $(this).val();
+            var fileName = $(this).parent().parent().attr('name');
+            var row = $(this).parent().parent()
+            $('#changeProjectNameField').val(newName);
+            $('#changeProjectNameFileNameField').val(fileName);
+
+            var formData = new FormData($("#changeProjectNameForm")[0]);
+            $.ajax({
+                url:"/updateProjectName",
+                type:"POST",
+                data:formData,
+                contentType:false,
+                processData:false,
+                cache:false,
+                success:function(resp){
+                    console.log("success")
+                    if (newName.length == 0) {
+                        newName = "None"
+                    }
+                    $(nameContainer).html(newName);
+                    //nameContainer.html(newName);
+                    row.attr('projectname',newName);
+                    oldHTML = undefined;
+                },
+                error:function(resp){
+                    console.log(resp);
+                },
+                xhr:function(){
+                    myXhr = $.ajaxSettings.xhr();
+                    return myXhr;
+                }
+            });
+
+        };
+    });
+});
+
+
+$('.sharingDetailsButton').click(function(e) {
+    var fileName = this.value;
+    $('#sharingFileName').html(fileName);
+    $('#getSharingFileName').val(fileName);
+    $('#addSharingFileName').val(fileName);
+    $('#delSharingFileName').val(fileName);
+
+    var formData = new FormData($("#sharingForm")[0]);
+    $.ajax({
+        url:"/getSharingData",
+        type:"POST",
+        data:formData,
+        contentType:false,
+        processData:false,
+        cache:false,
+        success:function(resp){
+            $('#sharingTableBody').html(resp);
+            $('.deleteSharedUserButton').click( function(e) {
+                var row = $(this).parent().parent(),
+                    shareeId = $(this).attr('value')
+                deleteSharedUser(shareeId,row);
+            });
+        },
+        error:function(resp){
+            console.log(resp);
+        },
+        xhr:function(){
+            myXhr = $.ajaxSettings.xhr();
+            return myXhr;
+        }
+    });
+    $('#sharingDetails').modal();
+
+});
+
+$('#addSharedUserButton').click(function(e) {
+    var user = $('#shareWithUserInput').val();
+    addSharedUser(user)
+});
+
+$('#shareWithUserInput').on('keypress', function(e) {
+    if (e.which == 13) {
+        var user = $('#shareWithUserInput').val();
+        addSharedUser(user);
+    }
+  
+});
+
+function addSharedUser(user) {
+    console.log(user);
+    if (user.length == 0) {
+        console.log("no user defined");
+        return;
+    }
+    $('#addSharingUserName').val(user);
+
+    var formData = new FormData($("#addUserForm")[0]);
+    $.ajax({
+        url:"/addSharedUser",
+        type:"POST",
+        data:formData,
+        contentType:false,
+        processData:false,
+        cache:false,
+        success:function(resp){
+            console.log(resp);
+            console.log("success");
+            
+            var addHtml = "<tr class='sharedWithRow'>"+
+                          "<td>"+user+"</td>"+
+                          "<td>"+
+                              "<a type='button' class='glyphicon glyphicon-remove deleteSharedUserButton' style='color:#000' value="+resp+"></a>"+
+                          "</td>"+
+                          "</tr>";
+            $('#sharingTableBody').append(addHtml);
+            $('.deleteSharedUserButton').unbind('click');
+            $('.deleteSharedUserButton').click( function(e) {
+                var row = $(this).parent().parent(),
+                    shareeId = $(this).attr('value')
+                deleteSharedUser(shareeId,row);
+            });  
+        },
+        error:function(resp){
+            console.log(resp);
+        },
+        xhr:function(){
+            myXhr = $.ajaxSettings.xhr();
+            return myXhr;
+        }
+    });
+}
+ 
+function deleteSharedUser(shareeId,row) {
+    console.log(shareeId);
+    $('#delSharingShareeId').val(shareeId);
+
+    var formData = new FormData($("#delUserForm")[0]);
+    $.ajax({
+        url:"/deleteSharedUser",
+        type:"POST",
+        data:formData,
+        contentType:false,
+        processData:false,
+        cache:false,
+        success:function(resp){
+            console.log(resp);
+            row.remove();
+            console.log("success");
+        },
+        error:function(resp){
+            console.log(resp);
+        },
+        xhr:function(){
+            myXhr = $.ajaxSettings.xhr();
+            return myXhr;
+        }
+    });
+    
+}
+
+$(".openSharedFileButton").click( function(e) {
+    var fileName = $(this).parent().parent().children()[1].innerHTML;
+    var owner = $(this).parent().parent().children()[3].innerHTML;
+    
+    $("#sharedFileName").val(fileName);
+    $("#sharedFileOwner").val(owner);
+    var formData = new FormData($("#openSharedFileForm")[0]);
+    $.ajax({
+        url:"/openSharedFile",
+        type:"POST",
+        data:formData,
+        contentType:false,
+        processData:false,
+        cache:false,
+        success:function(resp){
+            location.replace("http://stengleinlab101.cvmbs.colostate.edu:2222/sunburst");
+        },
+        error:function(resp){
+            console.log(resp);
+        },
+        xhr:function(){
+            myXhr = $.ajaxSettings.xhr();
+            return myXhr;
+        }
+    });
+})
+
+$(".unshareFileButton").click( function(e) {
+    var fileName = $(this).parent().parent().children()[1].innerHTML;
+    var owner = $(this).parent().parent().children()[3].innerHTML;
+    var row = $(this).parent().parent()
+
+    $("#unshareFileName").val(fileName);
+    $("#unshareFileOwner").val(owner);
+    var formData = new FormData($("#unshareFileForm")[0]);
+    $.ajax({
+        url:"/removeFileFromSharing",
+        type:"POST",
+        data:formData,
+        contentType:false,
+        processData:false,
+        cache:false,
+        success:function(resp){
+            console.log("success")
+            row.remove();
+        },
+        error:function(resp){
+            console.log(resp);
+        },
+        xhr:function(){
+            myXhr = $.ajaxSettings.xhr();
+            return myXhr;
+        }
+    });
+    
+})
+
+
