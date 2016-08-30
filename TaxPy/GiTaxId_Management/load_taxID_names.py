@@ -15,7 +15,7 @@ def main():
                 if "scientific name" in line:
                     line = line.rstrip("\t|\n")
                     line = line.split("\t|\t")
-                    dump.append(int(line[0]),line[1])
+                    dump.append((int(line[0]),line[1]))
                     count += 1
                 if count == 10:
                     dmpCmd = cmd + str(dump).lstrip("[").rstrip("]")+";"
