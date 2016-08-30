@@ -15,8 +15,7 @@ information with TaxIDs as the index. (Uses TaxDb library)
 
 class TaxIdInfo(infl.InputFile):
     def __init__(self):
-        self.fileName = ("/Users/jallison/Documents/"
-                         "NCBI-dump/taxonomy/taxdmp/names.dmp")
+        self.fileName = ("../../setup/database_import/names.dmp")
         self.taxIdToNames = {}
     def getNames(self):
         print "Loading TaxID Name Information"
