@@ -40,6 +40,6 @@ IGNORE 1 LINES
 LOAD DATA INFILE '/home/jallison/TaxAssessor/setup/database_import/nodes.dmp' 
 INTO TABLE taxIdNodes_NCBI 
 FIELDS TERMINATED BY '\t|\t' 
-LINES TERMINATED BY '\r\n' 
+LINES TERMINATED BY '\t\n' 
 IGNORE 1 LINES 
 (child, parent);
