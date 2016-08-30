@@ -1,65 +1,27 @@
 #!/usr/bin/python
 
-import InputFile as infl
-import TaxDb
-
-"""
-load_taxID_names.py - 
-
-When instantiated, utilize .getNames() to load the dictionary, .taxIdToNames,
-which contains the taxIDs and names as key and value respectively.  If run as
-itself, it will create a database table named 'TaxNames' and load it with the
-information with TaxIDs as the index. (Uses TaxDb library)
-"""
-
-
-class TaxIdInfo(infl.InputFile):
-    def __init__(self):
-        self.fileName = ("../../setup/database_import/names.dmp")
-        self.taxIdToNames = {}
-    def getNames(self):
-        print "Loading TaxID Name Information"
-        for line in self.genLine(printProgress=True):
-            if "scientific name" in line:
-                line = line.rstrip("\t|\n")
-                line = line.split("\t|\t")
-                self.taxIdToNames[int(line[0])] = line[1]
+import TaxPy.db_management.db_wrap as TaxDb
 
 def main():
-    exit()
-    taxIdFile = TaxIdInfo()
-    taxIdFile.getNames()
+    fileName = ("../../setup/database_import/names.dmp")
 
+    with TaxDb.openDb("TaxAssessor_Refs") as db, TaxDb.cursor(db) as cur:
+        with open(fileName, "r") as inFile:
+            cmd = "INSERT INTO TaxNames_NCBI (taxID,name) VALUES "
+            count = 0
+            dump = []
 
-    print "Checking name max length"
-    maxLen = 0
-    for taxId in taxIdFile.taxIdToNames:
-        name = taxIdFile.taxIdToNames[taxId]
-        if len(name) > maxLen:
-            maxLen = len(name)
-    print "Name max length = "+str(maxLen)
-
-    taxNameTable = TaxDb.MySqlTable("TaxNames")
-    taxNameTable.createTable({"taxID":"int(11) NOT NULL",
-                              "name":"varchar("+str(maxLen)+") NOT NULL"},
-                              index="taxID")
-
-    count = 0
-    fields = ['taxID','name']
-    importData = []
-    print "Loading taxID-Names into table"
-    nRecords = len(taxIdFile.taxIdToNames)
-    for taxId in taxIdFile.taxIdToNames:
-        count += 1
-        name = taxIdFile.taxIdToNames[taxId]
-        importData.append((int(taxId),name))
-        if count % 100000 == 0:
-            print str(count)+"/"+str(nRecords)+" records imported"
-            taxNameTable.addItems(fields,importData)
-            importData = []
-    taxNameTable.addItems(fields,importData)
-    taxNameTable.close()
-    return
+            for line in inFile:
+                if "scientific name" in line:
+                    line = line.rstrip("\t|\n")
+                    line = line.split("\t|\t")
+                    dump.append(int(line[0]),line[1])
+                    count += 1
+                if count % 100000 == 0:
+                    dmpCmd = cmd + str(dump).lstrip("[").rstrip("]")+";"
+                    cur.execute(dmpCmd)
+                    dump = []  
+        db.commit()
 
 
 if __name__ == "__main__":
