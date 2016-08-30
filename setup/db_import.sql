@@ -38,7 +38,7 @@ IGNORE 1 LINES
 */
 #populate the table: taxIdNodes_NCBI
 LOAD DATA INFILE '/home/jallison/TaxAssessor/setup/database_import/nodes.dmp' 
-INTO TABLE seqIdToTaxId_NCBI 
+INTO TABLE taxIdNodes_NCBI 
 FIELDS TERMINATED BY '\t|\t' 
 LINES TERMINATED BY '\r\n' 
 IGNORE 1 LINES 
