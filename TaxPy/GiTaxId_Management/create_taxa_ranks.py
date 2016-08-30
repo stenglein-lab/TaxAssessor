@@ -14,7 +14,7 @@ class TaxTree():
 
     def loadChildren(self):
         print "Reading dmp file"
-        nodeDmp = "database_import/nodes.dmp"
+        nodeDmp = "../../setup/database_import/nodes.dmp"
         with open(nodeDmp,"r") as nodeFile:
             for line in nodeFile:
                 line = line.split("\t|\t")
