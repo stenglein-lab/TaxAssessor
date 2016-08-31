@@ -17,7 +17,7 @@ import TaxPy.inputFile_management.align_file_manager as TaxFileManager
 import TaxPy.db_management.db_wrap as TaxDb
 import TaxPy.data_processing.inspect_reads as TaxReads
 import TaxPy.data_processing.export_reads as TaxExport
-import TaxPy.data_processing.compare_trees as TaxCompare
+#import TaxPy.data_processing.compare_trees as TaxCompare
 
 from tornado.escape import json_encode
 
@@ -627,33 +627,33 @@ class ServeReports(BaseHandler):
         except IOError:
             self.write("Page not found")
 
-class CompareSets(BaseHandler):
-    @tornado.web.authenticated
-    def post(self):
-        firstName = self.get_current_firstName()
-        userName = self.get_current_username()
-        sets = json.loads(self.get_argument("compareFiles"))
-        set1 = sets["set1"]
-        set2 = sets["set2"]
-        print "Comparing sets: ",set1,set2
-        #double check that the files exists
-        cmd = "SELECT filename FROM files where filename=%s and username=%s"
-        with TaxDb.openDb("TaxAssessor_Users") as db, TaxDb.cursor(db) as cur:
-            for treeSet in sets:
-                for fileName in sets[treeSet]:
-                    cur.execute(cmd,(fileName,userName))
-                    if not cur.fetchone():
-                        self.write("Error - "+fileName+" DOES NOT EXIST!")
-                        return
+# class CompareSets(BaseHandler):
+    # @tornado.web.authenticated
+    # def post(self):
+        # firstName = self.get_current_firstName()
+        # userName = self.get_current_username()
+        # sets = json.loads(self.get_argument("compareFiles"))
+        # set1 = sets["set1"]
+        # set2 = sets["set2"]
+        # print "Comparing sets: ",set1,set2
+        # #double check that the files exists
+        # cmd = "SELECT filename FROM files where filename=%s and username=%s"
+        # with TaxDb.openDb("TaxAssessor_Users") as db, TaxDb.cursor(db) as cur:
+            # for treeSet in sets:
+                # for fileName in sets[treeSet]:
+                    # cur.execute(cmd,(fileName,userName))
+                    # if not cur.fetchone():
+                        # self.write("Error - "+fileName+" DOES NOT EXIST!")
+                        # return
 
-        resultingTree = TaxCompare.compareData(set1,set2,userName)
-        with open("uploads/testFile.json","w") as jsonFile:
-            jsonFile.write(resultingTree)
-        if (len(set1) >= 3) and (len(set2) >= 3):
-            pass
-        elif (len(set1) >= 3) or (len(set2) >= 3):
-            self.render("compare_trees.html",userName = userName,user=firstName,
-                        compareTrees=resultingTree,fileNames=set1+set2)
+        # resultingTree = TaxCompare.compareData(set1,set2,userName)
+        # with open("uploads/testFile.json","w") as jsonFile:
+            # jsonFile.write(resultingTree)
+        # if (len(set1) >= 3) and (len(set2) >= 3):
+            # pass
+        # elif (len(set1) >= 3) or (len(set2) >= 3):
+            # self.render("compare_trees.html",userName = userName,user=firstName,
+                        # compareTrees=resultingTree,fileNames=set1+set2)
 
 class GetCoverage(BaseHandler):
     @tornado.web.authenticated

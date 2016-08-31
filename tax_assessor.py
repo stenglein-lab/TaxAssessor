@@ -33,7 +33,7 @@ def main():
             (r'/inspect',   handlers.InspectReads),
             (r'/saveSet',   handlers.SaveSet),
             (r'/getSet',    handlers.GetSetList),
-            (r'/compare',   handlers.CompareSets),
+            #(r'/compare',   handlers.CompareSets),
             (r'/getCoverage',    handlers.GetCoverage),
             (r'/filterGene',     handlers.FilterGene),
             (r'/exportSeqData',  handlers.ExportSeqData),

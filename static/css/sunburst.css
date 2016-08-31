@@ -80,5 +80,5 @@ rect.read.hidden {
 .x.axis.taxaTable line {
   fill: none;
   stroke: #000;
-  stroke-width: 4px;
+  stroke-width: 2px;
 }

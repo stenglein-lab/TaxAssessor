@@ -980,17 +980,20 @@ var tableSvg = d3.select("#taxaTable").append("div")
     .attr("viewBox","0 0 "+tableWidth+" "+tableHeight)
 
 var tableCanvas = tableSvg.append("g")
-    .attr("transform", "translate(0,0)");
+    .attr("transform", "translate(0,20)");
 
 var gAxis = tableCanvas.append("g")
     .attr("class","x axis taxaTable")
+    
 
-gAxis.append("text")
+
+tableCanvas.append("text")
     .attr("class", "x label")
     .attr("text-anchor", "end")
     .attr("x", tableWidth-5)
-    .attr("y", 27)
-    .text("# aligning reads");
+    .attr("y", -5)
+    .style("font-size","12px")
+    .text("# assigned reads");
 /*tableSvg.append("rect")
     .attr("width", "100%")
     .attr("height", "100%")
@@ -1124,7 +1127,7 @@ function updateTable(source,taxaList) {
     }
 
     function computeBarWidth(d) {
-        return ((d.count/maxCount) * barWidth);//+(barWidth*0.02);
+        return ((Math.log10(d.count)/Math.log10(maxCount)) * barWidth);//+(barWidth*0.02);
     }
 
     var maxCount = 0;
@@ -1151,7 +1154,7 @@ function updateTable(source,taxaList) {
     }
 
     var x0 = 0,
-        y0 = 30,
+        y0 = 50,
         padding = 1,
         shownGenes = [];
 
@@ -1221,8 +1224,9 @@ function updateTable(source,taxaList) {
         })
         .style("cursor","default")
 
-    var newDomain = [0,maxCount];
-    var x = d3.scale.linear()
+    var newDomain = [1,maxCount];
+    var x = d3.scale.log()
+        .base(10)
         .domain(newDomain)
         .range([0,tableWidth]);
 
@@ -1240,7 +1244,9 @@ function updateTable(source,taxaList) {
             return function(t) {
               x.domain(i(t));
               gAxis.call(xAxis)
-                   .call(adjustTextLabels);
+                   .call(adjustTextLabels)
+                   .selectAll("text")
+                   .attr("transform", "translate(18,3) rotate(35)");
             }
             oldDomain = newDomain;
         })
@@ -1610,6 +1616,13 @@ function createCoverageChart(geneInfo,coverageData) {
 
     function draw(e) {
 
+        var trans = zoom.translate(),
+            scale = zoom.scale();
+            
+        tx = Math.min(0, Math.max(width * (1 - scale), trans[0]));
+        ty = Math.min(0, Math.max(height * (1 - scale), trans[1]));
+    
+        zoom.translate([tx, ty]);
         /*
         var yExtent = [0, d3.max(readData.filter( function(d) {
             if ((x(d.startPos) > width) || (x(d.endPos) < 0)) {

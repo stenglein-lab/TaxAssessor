@@ -17,7 +17,7 @@ def main():
                     line = line.split("\t|\t")
                     dump.append((int(line[0]),line[1]))
                     count += 1
-                if count == 10:
+                if count == 1000:
                     dmpCmd = cmd + str(dump).lstrip("[").rstrip("]")+";"
                     cur.execute(dmpCmd)
                     dump = [] 
