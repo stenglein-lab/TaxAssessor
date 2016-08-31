@@ -11,6 +11,7 @@ from tornado.web import StaticFileHandler
 define("port", default="8000")
 
 this_dir = os.path.dirname(__file__)
+print this_dir
 
 def main():
 
@@ -28,7 +29,7 @@ def main():
             (r'/open',      handlers.Open),
             (r'/delete',    handlers.Delete),
             (r'/docs/(.*)', handlers.ServeFile, {'path':
-                '/home/jallison/TaxAssessor/website/uploads/'}),
+                this_dir+'uploads/'}),
             (r'/close',     handlers.Close),
             (r'/inspect',   handlers.InspectReads),
             (r'/saveSet',   handlers.SaveSet),
@@ -56,6 +57,8 @@ def main():
                 'xsrf_cookies':     True,
                 'login_url':        '/login'
     }
+    
+    print options["static_path"]
 
     app = handlers.TaxAssessor(app_handlers,**options)
     app.listen(tornado.options.options.port,max_buffer_size=(4*1024**3))
