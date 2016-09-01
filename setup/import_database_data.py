@@ -13,8 +13,8 @@ if __name__ == "__main__":
                 "prot.accession2taxid"]
                 
     with TaxDb.openDb("TaxAssessor_Refs") as db, TaxDb.cursor(db) as cur:
-        cmd = ("INSERT INTO seqIdToTaxId_NCBI (accession,accessionVersion,"
-               "taxId,gi) VALUES ")
+        cmd = ("INSERT INTO seqIdToTaxId_NCBI VALUES (accession,"
+               "accessionVersion,taxId,gi) VALUES ")
         for fileName in seqIdFiles:
             insertData = []
             count = 0
@@ -23,11 +23,10 @@ if __name__ == "__main__":
                     if count == 0:
                         count += 1
                         continue
-                    elif count % 10 == 0:
+                    elif count % 10000 == 0:
                         print count
                         insertData = str(insertData).lstrip("[").rstrip("]")
                         insertData = "(" + insertData + ")"
-                        print cmd+insertData
                         cur.execute(cmd+insertData)
                         db.commit()
                         insertData = []
