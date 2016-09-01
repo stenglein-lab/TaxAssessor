@@ -329,7 +329,7 @@ class Register(Login):
                     return errorMessage,False
         with TaxDb.openDb("TaxAssessor_Users") as db, TaxDb.cursor(db) as cur:
             cmd = "SELECT username FROM users WHERE username=%s;"
-            cur.execute(cmd,username)
+            cur.execute(cmd,(username))
             row = cur.fetchone()
             if row is not None:
                 errorMessage = "Email address already registered"

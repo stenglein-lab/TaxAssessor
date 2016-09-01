@@ -16,10 +16,6 @@ if __name__ == "__main__":
                     outFile.write(line.replace('{server_name}',serverName))
                 else:
                     outFile.write(line)
-                
-            
-                
-                
     os.rename("../nginx/conf/nginx.conf","../nginx/conf/nginx_save.conf")
     os.rename("../nginx/conf/new.conf","../nginx/conf/nginx.conf")
     
