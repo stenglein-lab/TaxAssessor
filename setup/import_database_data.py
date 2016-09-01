@@ -17,8 +17,12 @@ if __name__ == "__main__":
             cmd = ("INSERT INTO seqIdToTaxId_NCBI (accession,accessionVersion,"
                    "taxId,gi) VALUES ")
             insertData = []
+            count = 0
             with open("database_import/"+fileName,"r") as inFile:
                 for line in inFile:
+                    if count == 0:
+                        continue
+                    line = line.strip()
                     line = line.split("\t")
                     print line
                     exit()
