@@ -93,7 +93,7 @@ class BaseHandler(tornado.web.RequestHandler):
         with TaxDb.openDb("TaxAssessor_Users") as db, TaxDb.cursor(db) as cur:
             cmd = ("SELECT filename,dateModified,status,readFile,project "
                    "FROM files WHERE username=%s;")
-            cur.execute(cmd,userName)
+            cur.execute(cmd,(userName,))
             fileInfo = []
             dates = []
             statuses = []
@@ -141,7 +141,7 @@ class BaseHandler(tornado.web.RequestHandler):
         with TaxDb.openDb("TaxAssessor_Users") as db, TaxDb.cursor(db) as cur:
             fileSets = set()
             cmd = "SELECT setName FROM fileSets WHERE userName=%s;"
-            cur.execute(cmd,userName)
+            cur.execute(cmd,(userName,))
             for setName in cur.fetchall():
                 fileSets.add(setName[0])
         return sorted(list(fileSets))
@@ -161,11 +161,11 @@ class BaseHandler(tornado.web.RequestHandler):
     def get_shared_files(self,userName):
         with TaxDb.openDb("TaxAssessor_Users") as db, TaxDb.cursor(db) as cur:
             cmd = "SELECT uniqueId FROM users WHERE username=%s;"
-            cur.execute(cmd,userName)
+            cur.execute(cmd,(userName,))
             userId = int(cur.fetchone()[0])  
             
             cmd = "SELECT fileId,projectName FROM sharing WHERE shareeId=%s"
-            cur.execute(cmd,userId)
+            cur.execute(cmd,(userId,))
             sharedFiles = []
             fileProjects = {}
             for sharedFileId in cur.fetchall():
@@ -246,7 +246,7 @@ class Login(BaseHandler):
         #retrieve salt to generate salt-hashed password
         with TaxDb.openDb("TaxAssessor_Users") as db, TaxDb.cursor(db) as cur:
             cmd = ('SELECT salt FROM users WHERE username=%s;')
-            params = (loginInfo['username'])
+            params = (loginInfo['username'],)
             cur.execute(cmd,params)
             try:
                 salt = cur.fetchone()[0]
@@ -329,7 +329,7 @@ class Register(Login):
                     return errorMessage,False
         with TaxDb.openDb("TaxAssessor_Users") as db, TaxDb.cursor(db) as cur:
             cmd = "SELECT username FROM users WHERE username=%s;"
-            cur.execute(cmd,(username))
+            cur.execute(cmd,(username,))
             row = cur.fetchone()
             if row is not None:
                 errorMessage = "Email address already registered"
