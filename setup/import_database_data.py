@@ -34,8 +34,8 @@ if __name__ == "__main__":
                     line = line.split("\t")
                     line = tuple(line)
                     insertData.append(line)
-                insertData = str(insertData).lstrip("[").rstrip("]")
-                insertData = "(" + insertData + ")"
-                cur.execute(cmd+insertData)
-                db.commit()
+                if len(insertData) > 0:
+                    insertData = str(insertData).lstrip("[").rstrip("]")
+                    cur.execute(cmd+insertData)
+                    db.commit()
                 
