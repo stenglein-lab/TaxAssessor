@@ -23,7 +23,7 @@ if __name__ == "__main__":
                     if count == 0:
                         count += 1
                         continue
-                    elif count % 10000 == 0:
+                    elif count % 100000 == 0:
                         print count
                         insertData = str(insertData).lstrip("[").rstrip("]")
                         cur.execute(cmd+insertData+";")
