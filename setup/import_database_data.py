@@ -13,5 +13,14 @@ if __name__ == "__main__":
                 "prot.accession2taxid"]
                 
     for fileName in seqIdFiles:
-        with open("database_import/"+fileName,"r") as inFile:
-            print fileName
+        with TaxDb.openDb("TaxAssessor_Refs") as db, TaxDb.cursor(db) as cur:
+            cmd = ("INSERT INTO seqIdToTaxId_NCBI (accession,accessionVersion,"
+                   "taxId,gi) VALUES ")
+            insertData = []
+            with open("database_import/"+fileName,"r") as inFile:
+                for line in inFile:
+                    line = line.split("\t")
+                    print line
+                    exit()
+                
+            
