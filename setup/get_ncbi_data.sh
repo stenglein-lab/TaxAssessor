@@ -7,9 +7,4 @@ wget ftp://ftp.ncbi.nlm.nih.gov/pub/taxonomy/accession2taxid/nucl_wgs.accession2
 wget ftp://ftp.ncbi.nlm.nih.gov/pub/taxonomy/accession2taxid/prot.accession2taxid.gz
 wget ftp://ftp.ncbi.nlm.nih.gov/pub/taxonomy/taxdump.tar.gz
 gunzip *.gz
-tar -xvf taxdump.tar
-
-
-
-
-
+tar -xvf taxdump.tar -C database_import

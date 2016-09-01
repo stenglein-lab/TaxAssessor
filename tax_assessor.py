@@ -11,6 +11,7 @@ from tornado.web import StaticFileHandler
 define("port", default="8000")
 
 this_dir = os.path.dirname(__file__)
+print this_dir
 
 def main():
 
@@ -28,18 +29,24 @@ def main():
             (r'/open',      handlers.Open),
             (r'/delete',    handlers.Delete),
             (r'/docs/(.*)', handlers.ServeFile, {'path':
-                '/home/jallison/TaxAssessor/website/uploads/'}),
+                this_dir+'uploads/'}),
             (r'/close',     handlers.Close),
             (r'/inspect',   handlers.InspectReads),
             (r'/saveSet',   handlers.SaveSet),
             (r'/getSet',    handlers.GetSetList),
-            (r'/compare',   handlers.CompareSets),
-            (r'/getCoverage',   handlers.GetCoverage),
-            (r'/filterGene',   handlers.FilterGene),
-            (r'/exportSeqData',   handlers.ExportSeqData),
+            #(r'/compare',   handlers.CompareSets),
+            (r'/getCoverage',    handlers.GetCoverage),
+            (r'/filterGene',     handlers.FilterGene),
+            (r'/exportSeqData',  handlers.ExportSeqData),
             (r'/uploadReadFile', handlers.UploadReadFile),
             (r'/deleteReadFile', handlers.DeleteReadFile),
-            (r'/(favicon.ico)', tornado.web.StaticFileHandler, {"path": ""}),
+            (r'/updateProjectName', handlers.UpdateProjectName),
+            (r'/getSharingData', handlers.GetSharingData),
+            (r'/addSharedUser', handlers.AddSharedUser),
+            (r'/deleteSharedUser', handlers.DeleteSharedUser),
+            (r'/removeFileFromSharing', handlers.RemoveFileFromSharing),
+            (r'/openSharedFile', handlers.OpenSharedFile),
+            (r'/(favicon.ico)',  tornado.web.StaticFileHandler, {"path": ""}),
             (r'/(.+)',      handlers.ServeReports)
     ]
 
@@ -50,6 +57,8 @@ def main():
                 'xsrf_cookies':     True,
                 'login_url':        '/login'
     }
+    
+    print options["static_path"]
 
     app = handlers.TaxAssessor(app_handlers,**options)
     app.listen(tornado.options.options.port,max_buffer_size=(4*1024**3))

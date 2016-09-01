@@ -36,50 +36,60 @@ class InputFile():
             """A function that moves through the file and extracts the best
             alignment per read.
             """
+            skipChars = set(["@","#"])
             for line in self.fileBody:
-                if line[0] == "@":
-                    continue
-                data = line.split(self.loadOptions["delimiter"])
-                seqId = data[self.loadOptions["seqIdIndex"]]
-                if  seqId == "*":
-                    continue
-                if (self.loadOptions["seqIdDelimiter"] and
-                        self.loadOptions["seqIdDelimiter"] in seqId):
-                    seqId = seqId.split(self.loadOptions["seqIdDelimiter"])
-                    seqId = seqId[self.loadOptions["seqIdSubIndex"]]
                 try:
-                    seqId = int(seqId)
-                except ValueError:
-                    pass
-                readName = str(data[self.loadOptions["readNameIndex"]])
-                score = float(data[self.loadOptions["scoreIndex"]])
+                    line = line.strip()
+                    if not line:
+                        continue
+                    if line[0] in skipChars:
+                        continue
+                    data = line.split(self.loadOptions["delimiter"])
+                    seqId = data[self.loadOptions["seqIdIndex"]]
+                    if  seqId == "*":
+                        continue
+                    if (self.loadOptions["seqIdDelimiter"] and
+                            self.loadOptions["seqIdDelimiter"] in seqId):
+                        seqId = seqId.split(self.loadOptions["seqIdDelimiter"])
+                        seqId = seqId[self.loadOptions["seqIdSubIndex"]]
+                    try:
+                        seqId = int(seqId)
+                    except ValueError:
+                        pass
+                    readName = str(data[self.loadOptions["readNameIndex"]])
+                    score = float(data[self.loadOptions["scoreIndex"]])
 
-                if readName in self.loadOptions['contigWeights']:
-                    weight = self.loadOptions['contigWeights'][readName]
-                else:
-                    weight = 1
-
-                if ((readName not in self.reads) or
-                        ((self.loadOptions["scorePreference"] == "higher") and
-                                (score > self.reads[readName].score)) or
-                        ((self.loadOptions["scorePreference"] == "lower") and
-                                (score < self.reads[readName].score))):
-                    self.reads[readName] = ReadData(readName)
-                    self.reads[readName].score = score
-                    self.reads[readName].seqIds = set([seqId])
-                    self.reads[readName].seqIdCounts = {seqId:1}
-                    self.reads[readName].lineAssociatedSeqIds = [seqId]
-                    self.reads[readName].wholeLines = [line]
-                elif ((score == self.reads[readName].score) and
-                        (seqId not in self.reads[readName].seqIds)):
-                    self.reads[readName].seqIds.add(seqId)
-                    if seqId not in self.reads[readName].seqIdCounts:
-                        self.reads[readName].seqIdCounts[seqId] = 1
+                    if readName in self.loadOptions['contigWeights']:
+                        weight = self.loadOptions['contigWeights'][readName]
                     else:
-                        self.reads[readName].seqIdCounts[seqId] += 1
-                    self.reads[readName].lineAssociatedSeqIds.append(seqId)
-                    self.reads[readName].wholeLines.append(line)
-                self.reads[readName].weight = weight
+                        weight = 1
+
+                    if ((readName not in self.reads) or
+                            ((self.loadOptions["scorePreference"] == "higher") and
+                                    (score > self.reads[readName].score)) or
+                            ((self.loadOptions["scorePreference"] == "lower") and
+                                    (score < self.reads[readName].score))):
+                        self.reads[readName] = ReadData(readName)
+                        self.reads[readName].score = score
+                        self.reads[readName].seqIds = set([seqId])
+                        self.reads[readName].seqIdCounts = {seqId:1}
+                        self.reads[readName].lineAssociatedSeqIds = [seqId]
+                        self.reads[readName].wholeLines = [line]
+                    elif ((score == self.reads[readName].score) and
+                            (seqId not in self.reads[readName].seqIds)):
+                        self.reads[readName].seqIds.add(seqId)
+                        if seqId not in self.reads[readName].seqIdCounts:
+                            self.reads[readName].seqIdCounts[seqId] = 1
+                        else:
+                            self.reads[readName].seqIdCounts[seqId] += 1
+                        self.reads[readName].lineAssociatedSeqIds.append(seqId)
+                        self.reads[readName].wholeLines.append(line)
+                    self.reads[readName].weight = weight
+                except IndexError,e:
+                    print line
+                    print len(line)
+                    print e
+                    raise Exception("File does not match the assigned format")
 
         def getTaxIdsFromSeqIds(self):
             """A function that retrieves the taxIds that correspond to the
@@ -244,9 +254,10 @@ class InputFile():
         time5 = time.time()
         print "Time 4-5:",time5-time4
 
+        getTaxIdGenealogies(self)
+        getTaxIdRanks(self)
+        
         if (self.loadOptions["useLca"]):
-            getTaxIdGenealogies(self)
-            getTaxIdRanks(self)
             for readName in self.reads:
                 self.reads[readName].findLowestCommonTaxId(self.taxIds)
                 assignedTaxIds = self.reads[readName].assignedTaxIds[0]
@@ -258,11 +269,9 @@ class InputFile():
             for readName in self.reads:
                 self.reads[readName].assignedTaxIds = \
                         self.reads[readName].lineAssociatedTaxIds
-                self.reads[readName].contribution=(self.reads[readName].weight/
-                                                   self.reads[readName].count())
-                for seqId in self.reads[readName].seqId: #use seqId's b/c multiple seqIds could hit a single taxon
+                for seqId in self.reads[readName].seqIds: #use seqId's b/c multiple seqIds could hit a single taxon
                     taxId = self.seqIdToTax[seqId]
-                    score = contribution * self.reads[readName].score
+                    score = self.reads[readName].score
                     aggregateStatsUpTree(self,taxId,
                             self.reads[readName].contribution,score)
 
@@ -272,6 +281,15 @@ class InputFile():
         time7 = time.time()
         print "Time 6-7:",time7-time6
 
+        #check to be sure all taxIds have genealogies
+        genealogiesPresent = False
+        for taxId in self.taxIds:
+            if None not in self.taxIds[taxId].genealogy:
+                genealogiesPresent = True
+                break
+        if not genealogiesPresent:
+            raise Exception("No known taxa found in file")
+        
         return self.reads,self.taxIds
 
 
@@ -303,7 +321,8 @@ class ReadData():
         self.wholeLines = []
         self.lineAssociatedSeqIds = []
         self.lineAssociatedTaxIds = []
-        self.weight = 0
+        self.weight = 1
+        self.contribution = 1
 
     def findLowestCommonTaxId(self,allTaxIds):
         """Function to determine the lowest common ancestor of all taxIds
@@ -348,3 +367,5 @@ class ReadData():
 
     def count(self):
         return len(self.seqIds)
+    def contribution(self):
+        return float(self.weight)/self.count()

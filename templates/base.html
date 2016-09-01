@@ -8,10 +8,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="shortcut icon" href="{{ static_url('favicon.ico') }}">
     <!-- Bootstrap -->
-    <link href="{{ static_url("css/bootstrap.css") }}" rel="stylesheet">
-    <link href="{{ static_url("css/jquery-ui.min.css") }}" rel="stylesheet">
-    <link href="{{ static_url("css/custom.css") }}" rel="stylesheet">
-    <script src="{{ static_url("js/respond.js") }}" ></script>
+    <base href="${pageContext.request.contextPath}">
+    <link rel="stylesheet" href="{{ static_url("css/bootstrap.css") }}" type="text/css" />
+    <link rel="stylesheet" href="{{ static_url("css/jquery-ui.min.css") }}" type="text/css" />
+    <link rel="stylesheet" href="{{ static_url("css/custom.css") }}" type="text/css" />
+    <script src="{{ static_url('js/respond.js') }}" ></script>
     {% block head %}
     {% end %}
 </head>
@@ -21,11 +22,13 @@
     <header class="row">
         <div class="col-lg-6 col-sm-6">
             <h1>TaxAssessor</h1>
+            {% block fileName %}
+            {% end %}
         </div>
         <div class="col-lg-6 col-sm-6 bottom-right-align-text">
             <p>
             {% if user == None %}
-                Login for access - 
+                Login for access -
                 <a href="#loginModal" data-toggle="modal">
                     Login
                 </a>
@@ -58,6 +61,10 @@
                     <li><a href="/#about">About</a></li>
                     <li><a href="/#contact">Contact</a></li>
                 </ul>
+            </div>
+            <div class="navbar-bigDropDown" style="display:none;">
+                {% block navbar-bigDropDown %}
+                {% end %}
             </div>
         </div>
     </nav>

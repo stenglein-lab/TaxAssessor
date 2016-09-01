@@ -6,11 +6,43 @@
 {% end %}
 
 {% block data_navbar %}
-    <!--<li><a href="#" id="sunburst_options">Visualization Options</a></li>-->
+    <li><a href="#" id="sunburst_options">Visualization Options</a></li>
 {% end %}
 
+{% block navbar-bigDropDown %}
+<!--
+<div>
+    <ul class="nav nav-tabs" role="tablist">
+    <li role="presentation" class="active"><a href="#navigationTab" aria-controls="navigation" role="tab" data-toggle="tab">Navigation</a></li>
+    <li role="presentation"><a href="#exportTab" aria-controls="exportTab" role="tab" data-toggle="tab">Export Visible</a></li>
+    <li role="presentation"><a href="#filterTab" aria-controls="filterTab" role="tab" data-toggle="tab">Filters</a></li>
+    </ul>
+
+    <div class="tab-content">
+    <div role="tabpanel" class="tab-pane active" id="navigationTab">
+        <div class="row optionsRow">
+            <div class="col-lg-3 col-md-3 col-sm-12 col-xs-12">
+                <button class="btn btn-primary" id="backToRoot">Back To Root</button>
+                <input type="text" class="form-control" id="searchForTaxa" placeholder="Navigate to Taxon"></input>
+            </div>
+        </div>
+    </div>
+    <div role="tabpanel" class="tab-pane" id="exportTab">
+        <div class="row optionsRow">
+            <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12">
+                <button type="button" class="btn btn-primary exportVisibleButton" value='seq'>Reads</button>
+                <button type="button" class="btn btn-primary exportVisibleButton" value='map'>Alignments</button>
+            </div>
+        </div>
+    </div>
+    <div role="tabpanel" class="tab-pane" id="filterTab">...</div>
+    </div>
+</div>
+-->
+{% end %}
 
 {% block data_body %}
+    
     <div class="row">
         <form target="_blank" enctype="multipart/form-data" action="/inspect" method="post" id="inspectForm">
             {% raw xsrf_form_html() %}
@@ -226,11 +258,11 @@
                                     <tr>
                                         <th style="width:5%">#</th>
                                         <th style="width:50%">Gene Name</th>
-                                        <th style="width:5%">Reads</th>
                                         <th style="width:5%">Mapping</th>
+                                        <th style="width:5%">Reads</th>
                                         <th style="width:10%">Coverage</th>
                                         <th style="width:10%">GeneID</th>
-                                        <th style="width:10%">Present in x Reads</th>
+                                        <th style="width:10%"># Aligned Reads</th>
                                     </tr>
                                 </thead>
                                 <tbody id="geneTableBody">
