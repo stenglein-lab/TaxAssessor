@@ -14,7 +14,7 @@ if __name__ == "__main__":
     with open("../nginx/conf/new.conf","w") as outFile:
         with open("../nginx/conf/nginx.conf","r") as inFile:
             for line in inFile:
-                fout.write(line.replace('{TaxAssessor}',taxAssDir))
+                outFile.write(line.replace('{TaxAssessor}',taxAssDir))
 
 
 
