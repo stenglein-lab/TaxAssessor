@@ -26,7 +26,6 @@ if __name__ == "__main__":
                     elif count % 10000 == 0:
                         print count
                         insertData = str(insertData).lstrip("[").rstrip("]")
-                        insertData = "(" + insertData + ")"
                         cur.execute(cmd+insertData+";")
                         db.commit()
                         insertData = []
