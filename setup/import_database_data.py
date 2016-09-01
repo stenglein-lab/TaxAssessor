@@ -21,6 +21,7 @@ if __name__ == "__main__":
             with open("database_import/"+fileName,"r") as inFile:
                 for line in inFile:
                     if count == 0:
+                        count += 1
                         continue
                     line = line.strip()
                     line = line.split("\t")
